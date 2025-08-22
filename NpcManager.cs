@@ -1,3 +1,5 @@
+using UnityEditor;
+
 namespace player2_sdk
 {
     using System;
@@ -67,8 +69,9 @@ namespace player2_sdk
         
         [Header("Config")] 
         [SerializeField] 
-        [Tooltip("The Game ID is used to identify your game instance. It should be descriptive and unique, like 'my-shooting-game'")]
-        public string gameId = null;
+        [Tooltip("The Client ID is used to identify your game. It can be acquired from the Player2 Developer Dashboard")]
+        public string clientId = null;
+
         [SerializeField] 
         [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the SpawnNpc configuration.")]
         public bool TTS = false;
@@ -91,6 +94,9 @@ namespace player2_sdk
             }
         };
 
+        public string apiKey = null;
+        public UnityEvent spawnNpcs = new UnityEvent();
+        public UnityEvent<string> NewApiKey = new UnityEvent<string>();
         public List<SerializableFunction> GetSerializableFunctions()
         {
             var serializableFunctions = new List<SerializableFunction>();
@@ -103,46 +109,49 @@ namespace player2_sdk
         }
 
 
+        private const string BaseUrl = "https://api.player2.game/v1";
+        
 
-        private const string BaseUrl = "http://localhost:4315/v1";
-
-        public static string GetBaseUrl()
+        public string GetBaseUrl()
         {
             return BaseUrl;
         }
 
         private void Awake()
         {
-            if (string.IsNullOrEmpty(gameId))
+            PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
+            if (string.IsNullOrEmpty(clientId))
             {
-                Debug.LogError("NpcManager requires a Game ID to be set.", this);
+                Debug.LogError("NpcManager requires a Client ID to be set.", this);
                 return;
             }
+            
             // Add the component and configure it
             _responseListener = gameObject.AddComponent<Player2NpcResponseListener>();
-            _responseListener.SetGameId(gameId);
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
+            _responseListener.newApiKey = NewApiKey;
 
-            Debug.Log($"NpcManager initialized with gameId: {gameId}");
+            NewApiKey.AddListener((apiKey) =>
+            {
+                var start = this.apiKey == null;
+                this.apiKey = apiKey;
+                if (start)
+                {
+                    spawnNpcs.Invoke();
+                }
+            });
+            Debug.Log($"NpcManager initialized with clientId: {clientId}");
         }
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(gameId) || gameId == "your-game-id")
+            if (string.IsNullOrEmpty(clientId))
             {
                 Debug.LogError("NpcManager requires a Game ID to be set.", this);
             }
         }
-        private void Start()
-        {
-            // Ensure listener starts after all components are initialized
-            if (_responseListener != null && !_responseListener.IsListening)
-            {
-                Debug.Log("Starting response listener from NpcManager");
-                _responseListener.StartListening();
-            }
-
-        }
         
+        
+     
         public void RegisterNpc(string id, TextMeshProUGUI onNpcResponse, GameObject npcObject)
         {
             if (_responseListener == null)
@@ -239,7 +248,7 @@ namespace player2_sdk
             else
             {
                 Debug.Log(
-                    $"Response listener status: IsListening={_responseListener.IsListening}, GameId={_responseListener.GameId}");
+                    $"Response listener status: IsListening={_responseListener.IsListening}");
             }
         }
     }

@@ -57,9 +57,11 @@ namespace player2_sdk
         [SerializeField] private TextMeshProUGUI outputMessage;
 
         private string _npcID = null;
-
-        private string _gameID() => npcManager.gameId;
-        private string _baseUrl() => NpcManager.GetBaseUrl();
+        
+        
+        
+        
+        private string _clientID() => npcManager.clientId;
 
         private void Start()
         {
@@ -68,7 +70,13 @@ namespace player2_sdk
             inputField.onEndEdit.AddListener(OnChatMessageSubmitted);
             inputField.onEndEdit.AddListener(_ => inputField.text = string.Empty);
 
-            OnSpawnTriggered();
+            npcManager.spawnNpcs.AddListener(() =>
+            {
+                
+            
+                OnSpawnTriggered();
+            });
+            
         }
 
         private void OnSpawnTriggered()
@@ -96,7 +104,7 @@ namespace player2_sdk
                     commands = npcManager.GetSerializableFunctions()
                 };
 
-                string url = $"{_baseUrl()}/npc/games/{_gameID()}/npcs/spawn";
+                string url = $"{npcManager.GetBaseUrl()}/npcs/spawn";
                 Debug.Log($"Spawning NPC at URL: {url}");
 
                 string json = JsonConvert.SerializeObject(spawnData, npcManager.JsonSerializerSettings);
@@ -105,6 +113,7 @@ namespace player2_sdk
                 using var request = new UnityWebRequest(url, "POST");
                 request.uploadHandler = new UploadHandlerRaw(bodyRaw);
                 request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
                 request.SetRequestHeader("Content-Type", "application/json");
                 request.SetRequestHeader("Accept", "application/json");
 
@@ -175,13 +184,14 @@ namespace player2_sdk
             {
                 chatRequest.tts = "local_client";
             }
-            string url = $"{_baseUrl()}/npc/games/{_gameID()}/npcs/{_npcID}/chat";
+            string url = $"{npcManager.GetBaseUrl()}/npcs/{_npcID}/chat";
             string json = JsonConvert.SerializeObject(chatRequest, npcManager.JsonSerializerSettings);
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
 
             using var request = new UnityWebRequest(url, "POST");
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
             request.SetRequestHeader("Content-Type", "application/json");
 
             // Use Unity's native Awaitable async method

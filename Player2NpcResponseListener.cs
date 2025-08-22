@@ -62,11 +62,11 @@ namespace player2_sdk
 
     public class Player2NpcResponseListener : MonoBehaviour
     {
-        [SerializeField] private string _baseUrl = "http://localhost:4315/v1";
-        [SerializeField] private string _gameId;
+        public string _baseUrl = null;
         [SerializeField] private float _reconnectDelay = 2.0f;
         [SerializeField] private int _maxReconnectAttempts = 5;
 
+        private string apiKey;
         private bool _isListening = false;
         private int _reconnectAttempts = 0;
 
@@ -74,25 +74,34 @@ namespace player2_sdk
             new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
 
         public JsonSerializerSettings JsonSerializerSettings;
+        public UnityEvent<string> newApiKey;
 
+
+        public Player2NpcResponseListener(JsonSerializerSettings jsonSerializerSettings, UnityEvent<string> newApiKey)
+        {
+            this.JsonSerializerSettings = jsonSerializerSettings;
+            this.newApiKey = newApiKey;
+            
+        }
+        
         public bool IsListening => _isListening;
 
-        public string GameId
-        {
-            get => _gameId;
-            set => _gameId = value;
-        }
+      
 
-        private void Start()
+        private void Awake()
         {
-            // Don't auto-start - let NpcManager control when to start
-            Debug.Log($"Player2NpcResponseListener initialized with GameId: {_gameId}");
+            newApiKey.AddListener((apiKey) =>
+            {
+                bool start = this.apiKey == null;
+                
+                this.apiKey = apiKey;
+                if (start)
+                {
+                    StartListening();
+                }
+            });
         }
-
-        public void SetGameId(string gameId)
-        {
-            _gameId = gameId;
-        }
+        
 
         public void RegisterNpc(string npcId, UnityEvent<NpcApiChatResponse> onNpcResponse)
         {
@@ -125,9 +134,9 @@ namespace player2_sdk
                 return;
             }
 
-            if (string.IsNullOrEmpty(_gameId))
+            if (string.IsNullOrEmpty(apiKey))
             {
-                Debug.LogError("Cannot start listening: Game ID is not set");
+                Debug.LogError("Cannot start listening: user is not authenticated");
                 return;
             }
 
@@ -186,13 +195,15 @@ namespace player2_sdk
 
         private async Awaitable ProcessStreamingResponsesAsync()
         {
-            string url = $"{_baseUrl}/npc/games/{_gameId}/npcs/responses";
+            string url = $"{_baseUrl}/npcs/responses";
             Debug.Log($"Connecting to response stream: {url}");
 
             using var request = UnityWebRequest.Get(url);
 
             // Set headers for streaming
+            request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
             request.SetRequestHeader("Accept", "text/plain");
+
             request.SetRequestHeader("Cache-Control", "no-cache");
             request.SetRequestHeader("Connection", "keep-alive");
 
@@ -331,7 +342,7 @@ namespace player2_sdk
             {
                 StopListening();
             }
-            else if (!string.IsNullOrEmpty(_gameId))
+            else if (!string.IsNullOrEmpty(apiKey))
             {
                 StartListening();
             }
@@ -343,7 +354,7 @@ namespace player2_sdk
             {
                 StopListening();
             }
-            else if (!string.IsNullOrEmpty(_gameId))
+            else if (!string.IsNullOrEmpty(apiKey))
             {
                 StartListening();
             }
