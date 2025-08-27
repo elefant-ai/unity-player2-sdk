@@ -194,7 +194,7 @@ namespace player2_sdk
         {
             if (npcManager.TTS)
             {
-                chatRequest.tts = "local_client";
+                chatRequest.tts = "server";
             }
             if (npcManager == null)
             {
