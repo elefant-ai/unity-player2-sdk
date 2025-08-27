@@ -1090,6 +1090,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.Login
   npcManager: {fileID: 321986438}
+  authenticationFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  loginButton: {fileID: 571398744}
 --- !u!114 &571398747
 MonoBehaviour:
   m_ObjectHideFlags: 0

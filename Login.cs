@@ -10,6 +10,7 @@ namespace player2_sdk
     using System;
     
     using UnityEngine;
+    using UnityEngine.Events;
 
     [Serializable]
     class InitiateAuthFlow
@@ -59,8 +60,26 @@ namespace player2_sdk
     {
         [SerializeField]
         public NpcManager npcManager;
-        
-        
+
+
+        [SerializeField]
+        public UnityEvent authenticationFinished;
+
+
+        [SerializeField]
+        public GameObject loginButton;
+
+
+        private void Awake()
+        {
+            authenticationFinished = new UnityEvent();
+            authenticationFinished.AddListener(() =>
+            {
+                loginButton.SetActive(false);
+            });
+        }
+
+
         public async void OpenURL()
         {
             try
@@ -68,11 +87,12 @@ namespace player2_sdk
                 var response = await StartLogin();
 
                 Application.OpenURL(response.verificationUriComplete);
-                
+
                 var token = await GetToken(response);
                 Debug.Log("Token received");
 
                 npcManager.NewApiKey.Invoke(token);
+                authenticationFinished.Invoke();
             }
             catch (Exception e)
             {
