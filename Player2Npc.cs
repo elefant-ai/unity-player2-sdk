@@ -44,7 +44,7 @@ namespace player2_sdk
         [CanBeNull] public string game_state_info;
             [CanBeNull] public string tts; // Nullable by convention / attribute
     }
-    
+
     public class Player2Npc : MonoBehaviour
     {
         [Header("State Config")] [SerializeField]
@@ -66,10 +66,10 @@ namespace player2_sdk
         [SerializeField] private TextMeshProUGUI outputMessage;
 
         private string _npcID = null;
-        
-        
-        
-        
+
+
+
+
         private string _clientID() => npcManager.clientId;
 
         private void Awake()
@@ -94,8 +94,8 @@ namespace player2_sdk
                 Debug.LogWarning("InputField not assigned on Player2Npc; chat input disabled.", this);
             }
 
-            
-            
+
+
         }
 
         private void OnChatMessageSubmitted(string message)
@@ -115,7 +115,7 @@ namespace player2_sdk
                 voice_id = voiceId,
                 commands = npcManager.GetSerializableFunctions(),
                 tts = new TTSInfo { speed = 1.0, audio_format = "mp3" },
-                keep_game_state = npcManager
+                keep_game_state = npcManager.keep_game_state
             };
 
             if (npcManager == null)
@@ -152,7 +152,7 @@ namespace player2_sdk
                 Debug.LogError(error);
             }
         }
-            
+
 
         private async Awaitable SendChatMessageAsync(string message)
         {

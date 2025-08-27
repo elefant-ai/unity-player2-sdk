@@ -3,10 +3,13 @@ using UnityEditor;
 namespace player2_sdk
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.IO;
     using TMPro;
     using UnityEngine;
     using UnityEngine.Events;
+    using UnityEngine.Networking;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
     using UnityEngine.Serialization;
@@ -66,25 +69,25 @@ namespace player2_sdk
 
     public class NpcManager : MonoBehaviour
     {
-        
-        [Header("Config")] 
-        [SerializeField] 
+
+        [Header("Config")]
+        [SerializeField]
         [Tooltip("The Client ID is used to identify your game. It can be acquired from the Player2 Developer Dashboard")]
         public string clientId = null;
 
-        [SerializeField] 
+        [SerializeField]
         [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the SpawnNpc configuration.")]
         public bool TTS = false;
         [SerializeField]
         [Tooltip("If true, the NPCs will keep track of game state information in the conversation history.")]
         public bool keep_game_state = false;
-        
+
         private Player2NpcResponseListener _responseListener;
-        
+
         [Header("Functions")] [SerializeField] public List<Function> functions;
-        
-        
-        [SerializeField] 
+
+
+        [SerializeField]
         [Tooltip("This event is triggered when a function call is received from the NPC. See the `ExampleFunctionHandler` script for how to handle these calls.")]
         public UnityEvent<FunctionCall> functionHandler;
 
@@ -117,9 +120,7 @@ namespace player2_sdk
             }
         }
 
-
         private const string BaseUrl = "https://api.player2.game/v1";
-        
 
         public string GetBaseUrl()
         {
@@ -134,7 +135,7 @@ namespace player2_sdk
                 Debug.LogError("NpcManager requires a Client ID to be set.", this);
                 return;
             }
-            
+
             // Add the component and configure it
             _responseListener = gameObject.AddComponent<Player2NpcResponseListener>();
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
@@ -150,7 +151,7 @@ namespace player2_sdk
                 spawnNpcs.Invoke();
             });
 
-            
+
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
         }
         private void OnValidate()
@@ -160,9 +161,9 @@ namespace player2_sdk
                 Debug.LogError("NpcManager requires a Game ID to be set.", this);
             }
         }
-        
-        
-     
+
+
+
         public void RegisterNpc(string id, TextMeshProUGUI onNpcResponse, GameObject npcObject)
         {
             if (_responseListener == null)
@@ -221,6 +222,20 @@ namespace player2_sdk
                     }
                 }
 
+                // Handle audio playback if audio data is available
+                if (response.audio?.data != null && !string.IsNullOrEmpty(response.audio.data))
+                {
+                    // Check if NPC GameObject has AudioSource, add if needed
+                    var audioSource = npcObject.GetComponent<AudioSource>();
+                    if (audioSource == null)
+                    {
+                        audioSource = npcObject.AddComponent<AudioSource>();
+                    }
+
+                    // Start coroutine to decode and play audio
+                    StartCoroutine(PlayBase64Audio(response.audio.data, audioSource, id));
+                }
+
                 if (response.command == null || response.command.Count == 0)
                 {
                     return;
@@ -243,6 +258,40 @@ namespace player2_sdk
             {
                 Debug.LogError($"Unhandled exception processing response for NPC {id}: {ex.Message}");
             }
+        }
+
+        private IEnumerator PlayBase64Audio(string dataUrl, AudioSource audioSource, string npcId)
+        {
+            // Extract base64 data from data URL
+            string base64String = dataUrl.Substring(dataUrl.IndexOf(',') + 1);
+
+            // Decode to bytes
+            byte[] audioBytes = Convert.FromBase64String(base64String);
+
+            // Write to temp file with random name
+            string tempPath = Path.Combine(Application.temporaryCachePath, $"audio_{Guid.NewGuid().ToString("N")}.mp3");
+            File.WriteAllBytes(tempPath, audioBytes);
+
+            // Load and play
+            using (var request = UnityWebRequestMultimedia.GetAudioClip($"file://{tempPath}", AudioType.MPEG))
+            {
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    audioSource.clip = DownloadHandlerAudioClip.GetContent(request);
+                    audioSource.Play();
+                    Debug.Log($"Playing audio for NPC {npcId}");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to load audio: {request.error}");
+                }
+            }
+
+            // Cleanup after 5 seconds
+            yield return new WaitForSeconds(5f);
+            if (File.Exists(tempPath)) File.Delete(tempPath);
         }
 
         public void UnregisterNpc(string id)
