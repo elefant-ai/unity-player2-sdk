@@ -1,0 +1,59 @@
+# Unity generated files
+Examples/BasicChat/Library/
+Examples/BasicChat/Temp/
+Examples/BasicChat/Logs/
+Examples/BasicChat/UserSettings/
+
+# Unity crash reports
+Examples/BasicChat/sysinfo.txt
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Visual Studio / VSCode
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics generated file
+crashlytics-build.properties
+
+# Packed Addressables
+examples/BasicChat/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# Temporary auto-generated Android Assets
+examples/BasicChat/[Aa]ssets/[Ss]treamingAssets/aa.meta
+examples/BasicChat/[Aa]ssets/[Ss]treamingAssets/aa/*
