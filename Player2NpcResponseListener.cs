@@ -227,48 +227,62 @@ namespace player2_sdk
             // Keep streaming until we stop listening or encounter an error
             while (_isListening && this != null)
             {
-                // Wait for connection to be established
-                if (!connectionEstablished && !operation.isDone)
+                // If operation finished, decide what to do
+                if (operation.isDone)
                 {
-                    await Awaitable.WaitForSecondsAsync(0.05f);
-
-                    // Check if connection failed
-                    if (request.result == UnityWebRequest.Result.ConnectionError ||
-                        request.result == UnityWebRequest.Result.ProtocolError)
+                    // Distinguish success vs error vs early finish
+                    if (request.result == UnityWebRequest.Result.Success)
                     {
-                        throw new Exception($"Connection failed: {request.error}");
+                        Debug.Log("Streaming request completed normally (server closed connection). Exiting stream loop.");
+                        break; // Exit loop; caller will handle reconnection if still listening
                     }
-
-                    // Check if we have any data (connection established)
-                    if (request.downloadHandler?.text?.Length > 0)
+                    else if (request.result == UnityWebRequest.Result.ConnectionError ||
+                             request.result == UnityWebRequest.Result.ProtocolError ||
+                             request.result == UnityWebRequest.Result.DataProcessingError)
                     {
-                        connectionEstablished = true;
-                        Debug.Log("Streaming connection established");
+                        string errorMsg = request.error;
+                        if (string.IsNullOrWhiteSpace(errorMsg))
+                        {
+                            errorMsg = $"HTTP {(request.responseCode != 0 ? request.responseCode.ToString() : "<no status>")}";
+                        }
+                        throw new Exception($"Connection ended with error ({request.result}): {errorMsg}");
                     }
-
-                    continue;
+                    else
+                    {
+                        Debug.LogWarning($"Streaming request ended with unexpected state {request.result}. Attempting reconnection if still listening.");
+                        break;
+                    }
                 }
 
-                connectionEstablished = true;
-
-                // Check for new data
+                // Not done yet; wait for some data
                 var downloadHandler = request.downloadHandler;
+
+                // Connection establishment detection: first bytes arrived
+                if (!connectionEstablished)
+                {
+                    if (downloadHandler != null && downloadHandler.text.Length > 0)
+                    {
+                        connectionEstablished = true;
+                        Debug.Log("Streaming connection established (first bytes received)");
+                    }
+                }
+
                 if (downloadHandler != null && downloadHandler.text.Length > lastProcessedLength)
                 {
-                    Debug.Log($"Received new data: {downloadHandler.text}");
                     string newData = downloadHandler.text.Substring(lastProcessedLength);
                     lastProcessedLength = downloadHandler.text.Length;
+
+                    // Avoid logging entire buffer each time (can get very large). Log a preview instead.
+                    if (Debug.isDebugBuild)
+                    {
+                        var preview = newData.Length > 200 ? newData.Substring(0, 200) + "..." : newData;
+                        Debug.Log($"Received {newData.Length} new chars (total {lastProcessedLength}). Preview: {preview}");
+                    }
 
                     ProcessNewData(newData, lineBuffer);
                 }
 
-                // Check for connection errors during streaming
-                if (downloadHandler.error != null)
-                {
-                    throw new Exception($"Streaming connection lost: {downloadHandler.error}");
-                }
-
-                // Small delay to prevent excessive polling
+                // Small delay to prevent excessive polling (unity main thread friendly)
                 await Awaitable.WaitForSecondsAsync(0.05f);
             }
 
