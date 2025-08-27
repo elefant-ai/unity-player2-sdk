@@ -18,12 +18,60 @@
 
 # Getting Started
 
+**Disclaimer**: Since we are not yet an official package on Unity's asset store - you need for now to manually copy assets.
+
 ### Prerequisites
 
 Before integrating the Player2 Unity SDK, ensure you have:
 - Unity 2023.2 or later
 - A **Client ID** from the [Player2 Developer Dashboard](https://player2.game)
 - Newtonsoft.Json package (automatically installed with this SDK)
+
+### Quick Setup
+
+The quickest way to experiment with unity-player2-sdk is to:
+
+1. **Clone the repository**
+   ```bash
+   git clone git@github.com:elefant-ai/unity-player2-sdk
+   cd unity-player2-sdk
+   mkdir -p Projects
+   ```
+
+2. **Create Unity project**
+   - Go to Unity Hub
+   - Create new project → 2D (Built-in Render Pipeline)
+   - Name it "BasicChat" and save it in the `Projects` directory
+
+3. **Link assets**
+   ```bash
+   cd Projects/BasicChat
+   mkdir -p Assets/Player2SDK
+   ln -s ../../../ExampleFunctionHandler.cs Assets/Player2SDK/ExampleFunctionHandler.cs
+   ln -s ../../../ExampleFunctionHandler.cs.meta Assets/Player2SDK/ExampleFunctionHandler.cs.meta
+   ln -s ../../../Login.cs Assets/Player2SDK/Login.cs
+   ln -s ../../../Login.cs.meta Assets/Player2SDK/Login.cs.meta
+   ln -s ../../../NpcManager.cs Assets/Player2SDK/NpcManager.cs
+   ln -s ../../../NpcManager.cs.meta Assets/Player2SDK/NpcManager.cs.meta
+   ln -s ../../../Player2Npc.cs Assets/Player2SDK/Player2Npc.cs
+   ln -s ../../../Player2Npc.cs.meta Assets/Player2SDK/Player2Npc.cs.meta
+   ln -s ../../../Player2NpcResponseListener.cs Assets/Player2SDK/Player2NpcResponseListener.cs
+   ln -s ../../../Player2NpcResponseListener.cs.meta Assets/Player2SDK/Player2NpcResponseListener.cs.meta
+   ln -s ../../../demo.unity Assets/Scenes/demo.unity
+   ln -s ../../../demo.unity.meta Assets/Scenes/demo.unity.meta
+   ```
+
+4. **Import TextMeshPro assets**
+   - Click Window → TextMeshPro → Import TMP Essential Resources
+
+5. **Reimport all assets**
+   - Go to Assets → Reimport All
+
+6. **Run the demo**
+   - Choose the demo scene from the project details and run!
+
+7. **Update the SDK**
+   - If you need to update the SDK - just do `git pull --rebase origin main` and Assets → Reimport All - that's it!
 
 ### Integration Steps
 
