@@ -462,6 +462,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   clientId: 01977e1d-cf15-7d58-a6e2-ef47fc3d9f30
   TTS: 0
+  keep_game_state: 0
   functions:
   - name: flame
     description: Spawns a cloud of flames at the players position
@@ -2391,7 +2392,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button
+  m_text: Login
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

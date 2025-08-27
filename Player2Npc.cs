@@ -17,6 +17,13 @@ namespace player2_sdk
     using Unity.VisualScripting;
 
     [Serializable]
+    public class TTSInfo
+    {
+        public double speed = 1;
+        public string audio_format = "mp3";
+    }
+
+    [Serializable]
     public class SpawnNpc
     {
         public string short_name;
@@ -25,6 +32,8 @@ namespace player2_sdk
         public string system_prompt;
         [CanBeNull] public string voice_id;
         public List<SerializableFunction> commands;
+        public TTSInfo tts;
+        public bool keep_game_state = false;
     }
 
     [Serializable]
@@ -33,7 +42,7 @@ namespace player2_sdk
         public string sender_name;
         public string sender_message;
         [CanBeNull] public string game_state_info;
-        [CanBeNull] public string? tts;
+            [CanBeNull] public string tts; // Nullable by convention / attribute
     }
     
     public class Player2Npc : MonoBehaviour
@@ -63,26 +72,30 @@ namespace player2_sdk
         
         private string _clientID() => npcManager.clientId;
 
-        private void Start()
+        private void Awake()
         {
             Debug.Log("Starting Player2Npc with NPC: " + fullName);
-
-            inputField.onEndEdit.AddListener(OnChatMessageSubmitted);
-            inputField.onEndEdit.AddListener(_ => inputField.text = string.Empty);
-
-            npcManager.spawnNpcs.AddListener(() =>
+            if (npcManager == null)
             {
-                
-            
-                OnSpawnTriggered();
-            });
-            
-        }
+                Debug.LogError("Player2Npc requires an NpcManager reference. Please assign it in the inspector.", this);
+            }
+            else
+            {
+                npcManager.spawnNpcs.AddListener(async () => { await SpawnNpcAsync(); });
+            }
 
-        private void OnSpawnTriggered()
-        {
-            // Fire and forget async operation with proper error handling
-            _ = SpawnNpcAsync();
+            if (inputField != null)
+            {
+                inputField.onEndEdit.AddListener(OnChatMessageSubmitted);
+                inputField.onEndEdit.AddListener(_ => inputField.text = string.Empty);
+            }
+            else
+            {
+                Debug.LogWarning("InputField not assigned on Player2Npc; chat input disabled.", this);
+            }
+
+            
+            
         }
 
         private void OnChatMessageSubmitted(string message)
@@ -92,55 +105,54 @@ namespace player2_sdk
 
         private async Awaitable SpawnNpcAsync()
         {
-            try
+
+            var spawnData = new SpawnNpc
             {
-                var spawnData = new SpawnNpc
-                {
-                    short_name = shortName,
-                    name = fullName,
-                    character_description = characterDescription,
-                    system_prompt = systemPrompt,
-                    voice_id = voiceId,
-                    commands = npcManager.GetSerializableFunctions()
-                };
+                short_name = shortName,
+                name = fullName,
+                character_description = characterDescription,
+                system_prompt = systemPrompt,
+                voice_id = voiceId,
+                commands = npcManager.GetSerializableFunctions(),
+                tts = new TTSInfo { speed = 1.0, audio_format = "mp3" },
+                keep_game_state = npcManager
+            };
 
-                string url = $"{npcManager.GetBaseUrl()}/npcs/spawn";
-                Debug.Log($"Spawning NPC at URL: {url}");
-
-                string json = JsonConvert.SerializeObject(spawnData, npcManager.JsonSerializerSettings);
-                byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-
-                using var request = new UnityWebRequest(url, "POST");
-                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-                request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
-                request.SetRequestHeader("Content-Type", "application/json");
-                request.SetRequestHeader("Accept", "application/json");
-
-                // Use Unity's native Awaitable async method
-                await request.SendWebRequest();
-
-                if (request.result == UnityWebRequest.Result.Success)
-                {
-                    _npcID = request.downloadHandler.text.Trim('"');
-                    Debug.Log($"NPC spawned successfully with ID: {_npcID}");
-                    npcManager.RegisterNpc(_npcID, outputMessage, gameObject);
-                }
-                else
-                {
-                    string error = $"Failed to spawn NPC: {request.error} - Response: {request.downloadHandler.text}";
-                    Debug.LogError(error);
-                }
+            if (npcManager == null)
+            {
+                Debug.LogError("Player2Npc.SpawnNpcAsync called but npcManager is NOT assigned. Aborting spawn.");
+                return;
             }
-            catch (OperationCanceledException)
+
+            string url = $"{npcManager.GetBaseUrl()}/npcs/spawn";
+            Debug.Log($"Spawning NPC at URL: {url}");
+
+            string json = JsonConvert.SerializeObject(spawnData, npcManager.JsonSerializerSettings);
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
+            using var request = new UnityWebRequest(url, "POST");
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+            request.SetRequestHeader("Content-Type", "application/json");
+            request.SetRequestHeader("Accept", "application/json");
+
+            // Use Unity's native Awaitable async method
+            await request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
             {
-                Debug.Log("NPC spawn operation was cancelled");
+                _npcID = request.downloadHandler.text.Trim('"');
+                Debug.Log($"NPC spawned successfully with ID: {_npcID}");
+                npcManager.RegisterNpc(_npcID, outputMessage, gameObject);
             }
-            catch (Exception ex)
+            else
             {
-                Debug.LogError($"Unexpected error during NPC spawn: {ex.Message}");
+                string error = $"Failed to spawn NPC: {request.error} - Response: {request.downloadHandler.text}";
+                Debug.LogError(error);
             }
         }
+            
 
         private async Awaitable SendChatMessageAsync(string message)
         {
@@ -183,6 +195,11 @@ namespace player2_sdk
             if (npcManager.TTS)
             {
                 chatRequest.tts = "local_client";
+            }
+            if (npcManager == null)
+            {
+                Debug.LogError("Cannot send chat request because npcManager is null.");
+                return;
             }
             string url = $"{npcManager.GetBaseUrl()}/npcs/{_npcID}/chat";
             string json = JsonConvert.SerializeObject(chatRequest, npcManager.JsonSerializerSettings);

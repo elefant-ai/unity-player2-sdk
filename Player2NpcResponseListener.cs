@@ -74,13 +74,12 @@ namespace player2_sdk
             new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
 
         public JsonSerializerSettings JsonSerializerSettings;
-        public UnityEvent<string> newApiKey;
+        public UnityEvent<string> newApiKey = new UnityEvent<string>();
 
 
-        public Player2NpcResponseListener(JsonSerializerSettings jsonSerializerSettings, UnityEvent<string> newApiKey)
+        public Player2NpcResponseListener(JsonSerializerSettings jsonSerializerSettings)
         {
             this.JsonSerializerSettings = jsonSerializerSettings;
-            this.newApiKey = newApiKey;
             
         }
         
@@ -90,6 +89,17 @@ namespace player2_sdk
 
         private void Awake()
         {
+            // Ensure JsonSerializerSettings is initialized
+            if (newApiKey == null)
+            {
+                newApiKey = new UnityEvent<string>();
+            }
+            if (_responseEvents == null)
+            {
+                _responseEvents = new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
+            }
+
+
             newApiKey.AddListener((apiKey) =>
             {
                 bool start = this.apiKey == null;
@@ -202,7 +212,7 @@ namespace player2_sdk
 
             // Set headers for streaming
             request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
-            request.SetRequestHeader("Accept", "text/plain");
+            request.SetRequestHeader("Accept", "application/json");
 
             request.SetRequestHeader("Cache-Control", "no-cache");
             request.SetRequestHeader("Connection", "keep-alive");
@@ -245,6 +255,7 @@ namespace player2_sdk
                 var downloadHandler = request.downloadHandler;
                 if (downloadHandler != null && downloadHandler.text.Length > lastProcessedLength)
                 {
+                    Debug.Log($"Received new data: {downloadHandler.text}");
                     string newData = downloadHandler.text.Substring(lastProcessedLength);
                     lastProcessedLength = downloadHandler.text.Length;
 
@@ -252,9 +263,9 @@ namespace player2_sdk
                 }
 
                 // Check for connection errors during streaming
-                if (operation.isDone && request.result != UnityWebRequest.Result.Success)
+                if (downloadHandler.error != null)
                 {
-                    throw new Exception($"Streaming connection lost: {request.error}");
+                    throw new Exception($"Streaming connection lost: {downloadHandler.error}");
                 }
 
                 // Small delay to prevent excessive polling

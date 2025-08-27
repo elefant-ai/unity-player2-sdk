@@ -75,6 +75,9 @@ namespace player2_sdk
         [SerializeField] 
         [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the SpawnNpc configuration.")]
         public bool TTS = false;
+        [SerializeField]
+        [Tooltip("If true, the NPCs will keep track of game state information in the conversation history.")]
+        public bool keep_game_state = false;
         
         private Player2NpcResponseListener _responseListener;
         
@@ -104,8 +107,14 @@ namespace player2_sdk
             {
                 serializableFunctions.Add(function.ToSerializableFunction());
             }
-
-            return serializableFunctions;
+            if (serializableFunctions.Count > 0)
+            {
+                return serializableFunctions;
+            }
+            else
+            {
+                return null;
+            }
         }
 
 
@@ -129,17 +138,19 @@ namespace player2_sdk
             // Add the component and configure it
             _responseListener = gameObject.AddComponent<Player2NpcResponseListener>();
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
-            _responseListener.newApiKey = NewApiKey;
+            _responseListener._baseUrl = BaseUrl;
 
             NewApiKey.AddListener((apiKey) =>
             {
-                var start = this.apiKey == null;
+                Debug.Log("New API Key received");
+
+
+                _responseListener.newApiKey.Invoke(apiKey);
                 this.apiKey = apiKey;
-                if (start)
-                {
-                    spawnNpcs.Invoke();
-                }
+                spawnNpcs.Invoke();
             });
+
+            
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
         }
         private void OnValidate()
@@ -166,29 +177,16 @@ namespace player2_sdk
                 return;
             }
 
+            bool uiAttached = onNpcResponse != null;
+            if (!uiAttached)
+            {
+                Debug.LogWarning($"Registering NPC {id} without a TextMeshProUGUI target; responses will not display in UI.");
+            }
+
             Debug.Log($"Registering NPC with ID: {id}");
 
             var onNpcApiResponse = new UnityEvent<NpcApiChatResponse>();
-            onNpcApiResponse.AddListener((response) =>
-            {
-                if (response != null)
-                {
-                    if (!string.IsNullOrEmpty(response.message))
-                    {
-                        Debug.Log($"Updating UI for NPC {id}: {response.message}");
-                        onNpcResponse.text = response.message;
-                    }
-
-
-                    if (response.command != null)
-                    {
-                        foreach (var functionCall in response.command)
-                        {
-                            functionHandler.Invoke(functionCall.ToFunctionCall(npcObject));
-                        }
-                    }
-                }
-            });
+            onNpcApiResponse.AddListener(response => HandleNpcApiResponse(id, response, uiAttached, onNpcResponse, npcObject));
 
             _responseListener.RegisterNpc(id, onNpcApiResponse);
 
@@ -197,6 +195,53 @@ namespace player2_sdk
             {
                 Debug.Log("Listener was not running, starting it now");
                 _responseListener.StartListening();
+            }
+        }
+
+        private void HandleNpcApiResponse(string id, NpcApiChatResponse response, bool uiAttached, TextMeshProUGUI onNpcResponse, GameObject npcObject)
+        {
+            try
+            {
+                if (response == null)
+                {
+                    Debug.LogWarning($"Received null response object for NPC {id}");
+                    return;
+                }
+
+                if (!string.IsNullOrEmpty(response.message))
+                {
+                    if (uiAttached && onNpcResponse != null)
+                    {
+                        Debug.Log($"Updating UI for NPC {id}: {response.message}");
+                        onNpcResponse.text = response.message;
+                    }
+                    else
+                    {
+                        Debug.Log($"(No UI) NPC {id} message: {response.message}");
+                    }
+                }
+
+                if (response.command == null || response.command.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var functionCall in response.command)
+                {
+                    try
+                    {
+                        var call = functionCall.ToFunctionCall(npcObject);
+                        functionHandler?.Invoke(call);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"Error invoking function call '{functionCall?.name}' for NPC {id}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Unhandled exception processing response for NPC {id}: {ex.Message}");
             }
         }
 

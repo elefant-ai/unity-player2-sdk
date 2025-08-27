@@ -70,6 +70,8 @@ namespace player2_sdk
                 Application.OpenURL(response.verificationUriComplete);
                 
                 var token = await GetToken(response);
+                Debug.Log("Token received");
+
                 npcManager.NewApiKey.Invoke(token);
             }
             catch (Exception e)
@@ -97,8 +99,7 @@ namespace player2_sdk
                 if (request.downloadHandler.isDone)
                 {
                     var response = JsonConvert.DeserializeObject<InitiateAuthFlowResponse>(request.downloadHandler.text);
-                    Debug.Log(response);
-                    
+
                     return response;
                 }
                 Debug.LogError("Failed to get auth initiation response");
