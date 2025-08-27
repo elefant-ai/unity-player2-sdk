@@ -2,18 +2,61 @@
 
 # 🗺️ Table of contents
 
-1. [NpcManager](#npcmanager)
+1. [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Integration Steps](#integration-steps)
+    - [Authentication Setup](#authentication-setup)
+2. [NpcManager](#npcmanager)
     - [Introduction](#introduction)
     - [Example setup of NpcManager](#example-setup-of-npcmanager)
-2. [NPC Setup](#npc-setup)
+3. [NPC Setup](#npc-setup)
     - [Npc Initialisation](#npc-initialisation)
     - [Configure the NPC component](#configure-the-npc-component)
-3. [Adding rich NPC functions (Optional)](#adding-rich-npc-functions-optional)
+4. [Adding rich NPC functions (Optional)](#adding-rich-npc-functions-optional)
 
 ---
 
+# Getting Started
 
+### Prerequisites
 
+Before integrating the Player2 Unity SDK, ensure you have:
+- Unity 2023.2 or later
+- A **Client ID** from the [Player2 Developer Dashboard](https://player2.game)
+- Newtonsoft.Json package (automatically installed with this SDK)
+
+### Integration Steps
+
+1. **Import the SDK**
+   - Copy all `.cs` files from this repository to your Unity project's `Assets` folder
+   - Unity will automatically compile the scripts
+
+2. **Set Up NpcManager**
+   - Add the `NpcManager` component to a GameObject in your scene (preferably the scene root)
+   - **Important**: Only use one NpcManager per scene
+   - Configure the required fields:
+     - **Client ID**: Enter your Client ID from the Player2 Developer Dashboard
+     - **TTS**: Enable if you want text-to-speech for NPCs
+     - **Functions**: Define any custom functions your NPCs can call (optional)
+
+3. **Create Login System**
+   - Add the `Login` component to a GameObject in your scene
+   - In the Login component, drag your NpcManager into the `Npc Manager` field
+   - Create a UI Button in your scene
+   - In the button's `OnClick()` event, add the Login GameObject and select `Login.OpenURL()`
+
+### Authentication Setup
+
+The SDK uses OAuth device flow for secure authentication:
+
+1. When a user clicks the login button, a browser window opens
+2. The user authorizes your application on the Player2 website
+3. The SDK automatically receives and stores the API key
+4. NPCs become active and ready to chat
+
+**Note**: Users must authenticate each time they start your application. The API key is obtained dynamically and not stored permanently.
+
+---
 
 # NpcManager
 
@@ -22,7 +65,7 @@
 The `NpcManager` component is the heart of the Player2 Unity SDK, allowing you to create AI‑driven NPCs that can chat and perform actions in your game world.
 
 To start integrating the player2-sdk into your project; Add `NpcManager` to your scene root, never use more than one NpcManager.
-It stores your *Game ID* and the list of functions the LLM can invoke.
+It stores your *Client ID* and the list of functions the LLM can invoke.
 
 ![Adding NpcManager to the hierarchy](https://cdn.elefant.gg/unity-sdk/init-npc-manager.png)
 
@@ -31,7 +74,7 @@ It stores your *Game ID* and the list of functions the LLM can invoke.
 ### Example setup of `NpcManager`
 ![NpcManager inspector configured](https://cdn.elefant.gg/unity-sdk/npc-manager-example.png)
 
-* **Game ID** – the name of the game/mod that you are making.
+* **Client ID** – your unique identifier from the Player2 Developer Dashboard.
 * **Functions → +** – one element per action.
 
   * *Name* – code & prompt identifier.
