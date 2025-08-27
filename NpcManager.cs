@@ -76,7 +76,7 @@ namespace player2_sdk
         public string clientId = null;
 
         [SerializeField]
-        [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the SpawnNpc configuration.")]
+        [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the tts.voice_ids configuration.")]
         public bool TTS = false;
         [SerializeField]
         [Tooltip("If true, the NPCs will keep track of game state information in the conversation history.")]

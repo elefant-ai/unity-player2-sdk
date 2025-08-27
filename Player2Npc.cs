@@ -21,6 +21,7 @@ namespace player2_sdk
     {
         public double speed = 1;
         public string audio_format = "mp3";
+        public List<string> voice_ids;
     }
 
     [Serializable]
@@ -30,7 +31,6 @@ namespace player2_sdk
         public string name;
         public string character_description;
         public string system_prompt;
-        [CanBeNull] public string voice_id;
         public List<SerializableFunction> commands;
         public TTSInfo tts;
         public bool keep_game_state = false;
@@ -112,9 +112,13 @@ namespace player2_sdk
                 name = fullName,
                 character_description = characterDescription,
                 system_prompt = systemPrompt,
-                voice_id = voiceId,
                 commands = npcManager.GetSerializableFunctions(),
-                tts = new TTSInfo { speed = 1.0, audio_format = "mp3" },
+                tts = new TTSInfo
+                {
+                    speed = 1.0,
+                    audio_format = "mp3",
+                    voice_ids = new List<string> { voiceId }
+                },
                 keep_game_state = npcManager.keep_game_state
             };
 
