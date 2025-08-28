@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 namespace player2_sdk
 {
     using System;
-    
+
     using UnityEngine;
     using UnityEngine.Events;
 
@@ -16,15 +16,15 @@ namespace player2_sdk
     class InitiateAuthFlow
     {
         public string ClientId;
-        
-        
+
+
         public InitiateAuthFlow(NpcManager npcManager)
         {
             ClientId = npcManager.clientId;
         }
     }
-    
-    
+
+
 
     [Serializable]
     class InitiateAuthFlowResponse
@@ -43,7 +43,7 @@ namespace player2_sdk
         public string clientId;
         public string deviceCode;
         public string grantType = "urn:ietf:params:oauth:grant-type:device_code";
-        
+
         public TokenRequest(string clientId, string deviceCode)
         {
             this.clientId = clientId;
@@ -77,6 +77,8 @@ namespace player2_sdk
             {
                 loginButton.SetActive(false);
             });
+            _ = TryImmediateWebLogin();
+
         }
 
 
@@ -84,6 +86,8 @@ namespace player2_sdk
         {
             try
             {
+                
+
                 var response = await StartLogin();
 
                 Application.OpenURL(response.verificationUriComplete);
@@ -130,7 +134,7 @@ namespace player2_sdk
                 Debug.LogError(error);
             }
             throw new Exception("Failed to start auth");
-            
+
         }
 
         private async Awaitable<string> GetToken(InitiateAuthFlowResponse auth)
@@ -239,7 +243,45 @@ namespace player2_sdk
 
             Debug.LogError("Timed out waiting for token (device code flow expired).");
             return null;
-        }
+    }
 
+    
+    
+    private async Awaitable<bool> TryImmediateWebLogin()
+        {
+            string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
+            using var request = UnityWebRequest.Post(url, string.Empty);
+            request.SetRequestHeader("Accept", "application/json");
+            await request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                var text = request.downloadHandler.text;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    try
+                    {
+                        var resp = JsonConvert.DeserializeObject<TokenResponse>(text);
+                        if (!string.IsNullOrEmpty(resp?.p2Key))
+                        {
+                            npcManager.NewApiKey.Invoke(resp.p2Key);
+                            authenticationFinished.Invoke();
+                            return true;
+                        }
+                        Debug.Log("Immediate web login response lacked p2Key.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"Failed to parse immediate web login response: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                // Non-success is not fatal; just proceed to device flow
+                Debug.Log($"Immediate web login not available: {request.responseCode} {request.error}");
+            }
+            return false;
+        }
     }
 }
