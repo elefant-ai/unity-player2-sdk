@@ -72,7 +72,10 @@ namespace player2_sdk
 
         private void Awake()
         {
-            authenticationFinished = new UnityEvent();
+            if (authenticationFinished == null)
+            {
+                authenticationFinished = new UnityEvent();
+            }
             authenticationFinished.AddListener(() =>
             {
                 loginButton.SetActive(false);
