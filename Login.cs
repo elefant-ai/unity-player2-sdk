@@ -89,7 +89,7 @@ namespace player2_sdk
         {
             try
             {
-                
+
 
                 var response = await StartLogin();
 
@@ -248,8 +248,8 @@ namespace player2_sdk
             return null;
     }
 
-    
-    
+
+
     private async Awaitable<bool> TryImmediateWebLogin()
         {
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";

@@ -80,12 +80,12 @@ namespace player2_sdk
         public Player2NpcResponseListener(JsonSerializerSettings jsonSerializerSettings)
         {
             this.JsonSerializerSettings = jsonSerializerSettings;
-            
+
         }
-        
+
         public bool IsListening => _isListening;
 
-      
+
 
         private void Awake()
         {
@@ -103,7 +103,7 @@ namespace player2_sdk
             newApiKey.AddListener((apiKey) =>
             {
                 bool start = this.apiKey == null;
-                
+
                 this.apiKey = apiKey;
                 if (start)
                 {
@@ -111,7 +111,7 @@ namespace player2_sdk
                 }
             });
         }
-        
+
 
         public void RegisterNpc(string npcId, UnityEvent<NpcApiChatResponse> onNpcResponse)
         {
@@ -176,7 +176,7 @@ namespace player2_sdk
                     Debug.Log("Starting streaming connection...");
                     await ProcessStreamingResponsesAsync();
 
-                    // If we get here and we're still supposed to be listening, 
+                    // If we get here and we're still supposed to be listening,
                     // it means the connection ended unexpectedly - reconnect
                     if (_isListening)
                     {

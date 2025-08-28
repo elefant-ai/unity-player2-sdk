@@ -60,7 +60,7 @@ namespace player2_sdk
         [SerializeField] private string systemPrompt = "Victor is a scientist obsessed with finding gold.";
         [Tooltip("The voice ID to use for TTS. Can be found at localhost:4315/v1/tts/voices")]
         [SerializeField] public string voiceId = "01955d76-ed5b-7451-92d6-5ef579d3ed28";
-        [SerializeField] private bool persistent = false;
+
 
         [Header("Events")] [SerializeField] private TMP_InputField inputField;
         [SerializeField] private TextMeshProUGUI outputMessage;

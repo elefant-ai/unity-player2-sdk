@@ -13,6 +13,10 @@
     - [Npc Initialisation](#npc-initialisation)
     - [Configure the NPC component](#configure-the-npc-component)
 4. [Adding rich NPC functions (Optional)](#adding-rich-npc-functions-optional)
+5. [Speech-to-Text Integration](#speech-to-text-integration)
+    - [STT Setup](#stt-setup) 
+    - [STT Controller](#stt-controller)
+    - [Customization](#customization)
 
 ---
 
@@ -193,5 +197,124 @@ Now, whenever the model decides the NPC should *act*, `HandleFunctionCall` fires
 
 ![Selecting HandleFunctionCall in the UnityEvent dropdown](https://cdn.elefant.gg/unity-sdk/function-handler-config.png)
 
+---
+
+# Speech-to-Text Integration
+
+The Player2 Unity SDK includes real-time Speech-to-Text (STT) functionality using WebSocket streaming. This allows players to speak directly to NPCs instead of typing.
+
+## STT Setup
+
+### Prerequisites
+- **NativeWebSocket package** (automatically added to `package.json`)
+- **Newtonsoft.Json** (already included with SDK)
+- **Microphone permissions** in your Unity project
+
+### Basic Integration
+
+1. **Add STT Component**
+   - Add `Player2STT` component to a GameObject in your scene
+   - Assign your `NpcManager` to the **Npc Manager** field
+
+2. **Configure STT Settings**
+   - **Sample Rate**: 44100 Hz (default, recommended)
+   - **Audio Chunk Duration**: 50ms (default)
+   - **Enable Interim Results**: For real-time partial transcriptions
+   - **Enable VAD**: Voice Activity Detection (optional)
+
+### Events
+The `Player2STT` component provides Unity Events for integration:
+
+- **OnSTTReceived**: Fired when a transcript is received
+- **OnSTTFailed**: Fired when STT encounters an error  
+- **OnListeningStarted**: Fired when recording begins
+- **OnListeningStopped**: Fired when recording ends
+
+## STT Controller
+
+For a complete UI solution, use the `STTController` component:
+
+### Setup
+1. **Add STTController** to a GameObject with a Button
+2. **Auto-Configuration**: The controller automatically finds:
+   - Button component for recording controls
+   - TextMeshPro components for button text and transcripts
+   - Player2STT component for STT functionality
+
+### Button States
+The controller manages button appearance:
+- **Normal**: Circle shape, "REC" text, white color
+- **Connecting**: Circle shape, "..." text, yellow color  
+- **Recording**: Square shape, "STOP" text, red color
+
+### Transcript Display
+- Automatically accumulates and displays transcripts
+- Shows timestamps and transcript numbers
+- Supports both TextMeshPro and regular Text components
+- Handles transcript history with configurable limits
+
+## Customization
+
+### Audio Settings
+```csharp
+[SerializeField] private int sampleRate = 44100;
+[SerializeField] private int audioChunkDurationMs = 50;
+[SerializeField] private float heartbeatInterval = 5f;
+```
+
+### UI Customization  
+```csharp
+[SerializeField] private string recordText = "REC";
+[SerializeField] private string stopText = "STOP";
+[SerializeField] private Color recordingColor = Color.red;
+[SerializeField] private Sprite circleSprite;
+[SerializeField] private Sprite squareSprite;
+```
+
+### Manual Integration
+If you prefer manual control over the STT system:
+
+```csharp
+public class MySTTHandler : MonoBehaviour
+{
+    [SerializeField] private Player2STT stt;
+    
+    void Start()
+    {
+        stt.OnSTTReceived.AddListener(OnTranscriptReceived);
+    }
+    
+    void OnTranscriptReceived(string transcript)
+    {
+        Debug.Log($"Received: {transcript}");
+        // Send transcript to NPC or handle as needed
+    }
+    
+    public void StartListening()
+    {
+        stt.StartSTT();
+    }
+    
+    public void StopListening()
+    {
+        stt.StopSTT();
+    }
+}
+```
+
+### Important Notes
+
+- **One STT per Scene**: Only use one `Player2STT` component per scene
+- **Microphone Permissions**: Ensure your project has microphone permissions enabled
+- **WebSocket Connection**: STT requires an active connection to the Player2 API
+- **Real-time Streaming**: Audio is streamed continuously for low-latency transcription
+- **Error Handling**: Monitor `OnSTTFailed` events for connection or API issues
+
+### Troubleshooting
+
+- **No Microphone**: Check `Microphone.devices.Length > 0`
+- **No Transcripts**: Verify NpcManager has valid API key and base URL
+- **Button Not Responding**: Ensure Button component and STT component are properly assigned
+- **WebSocket Errors**: Check internet connection and API key validity
 
 ---
