@@ -61,6 +61,10 @@ The quickest way to experiment with unity-player2-sdk is to:
    ln -s ../../../Player2Npc.cs.meta Assets/Player2SDK/Player2Npc.cs.meta
    ln -s ../../../Player2NpcResponseListener.cs Assets/Player2SDK/Player2NpcResponseListener.cs
    ln -s ../../../Player2NpcResponseListener.cs.meta Assets/Player2SDK/Player2NpcResponseListener.cs.meta
+   ln -s ../../../Player2STT.cs Assets/Player2SDK/Player2STT.cs
+   ln -s ../../../Player2STT.cs.meta Assets/Player2SDK/Player2STT.cs.meta
+   ln -s ../../../STTController.cs Assets/Player2SDK/STTController.cs
+   ln -s ../../../STTController.cs.meta Assets/Player2SDK/STTController.cs.meta
    ln -s ../../../demo.unity Assets/Scenes/demo.unity
    ln -s ../../../demo.unity.meta Assets/Scenes/demo.unity.meta
    ```
