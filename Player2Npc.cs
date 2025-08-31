@@ -148,7 +148,15 @@ namespace player2_sdk
             {
                 _npcID = request.downloadHandler.text.Trim('"');
                 Debug.Log($"NPC spawned successfully with ID: {_npcID}");
-                npcManager.RegisterNpc(_npcID, outputMessage, gameObject);
+
+                if (!string.IsNullOrEmpty(_npcID) && npcManager != null)
+                {
+                    npcManager.RegisterNpc(_npcID, outputMessage, gameObject);
+                }
+                else
+                {
+                    Debug.LogError($"Invalid NPC ID or null npcManager: ID={_npcID}, Manager={npcManager}");
+                }
             }
             else
             {

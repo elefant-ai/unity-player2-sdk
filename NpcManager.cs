@@ -209,6 +209,12 @@ namespace player2_sdk
                     return;
                 }
 
+                if (npcObject == null)
+                {
+                    Debug.LogWarning($"NPC object is null for NPC {id}");
+                    return;
+                }
+
                 if (!string.IsNullOrEmpty(response.message))
                 {
                     if (uiAttached && onNpcResponse != null)
