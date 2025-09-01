@@ -70,6 +70,7 @@ namespace player2_sdk
         private bool _isListening = false;
         private int _reconnectAttempts = 0;
         private string _lastEventId = null;
+        private string _traceId = null;
         
         // SSE event parsing state
         private string _currentEventId = null;
@@ -78,20 +79,13 @@ namespace player2_sdk
         
         // Buffer protection
         private const int MAX_EVENT_SIZE = 2 * 1024 * 1024; // 2MB max per event
-        private const float CONNECTION_TIMEOUT = 30.0f; // 30 seconds timeout for idle connections
+        private const float CONNECTION_TIMEOUT = 300.0f; // 5 minutes - server should send pings every 15 seconds
 
         private Dictionary<string, UnityEvent<NpcApiChatResponse>> _responseEvents =
             new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
 
         public JsonSerializerSettings JsonSerializerSettings;
         public UnityEvent<string> newApiKey = new UnityEvent<string>();
-
-
-        public Player2NpcResponseListener(JsonSerializerSettings jsonSerializerSettings)
-        {
-            this.JsonSerializerSettings = jsonSerializerSettings;
-
-        }
 
         public bool IsListening => _isListening;
 
@@ -282,20 +276,42 @@ namespace player2_sdk
 
             string url = $"{_baseUrl}/npcs/responses";
 
-            // Log connection details including Last-Event-Id
-            if (!string.IsNullOrEmpty(_lastEventId))
+            // Validate URL format
+            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
             {
-                Debug.Log($"Connecting to response stream: {url} (reconnecting with Last-Event-Id: {_lastEventId})");
+                Debug.LogError($"Invalid URL format: {url}");
+                throw new Exception($"Invalid URL format: {url}");
+            }
+
+            // Test basic connectivity to the server
+            try
+            {
+                var testUri = new Uri(url);
+                Debug.Log($"Testing connectivity to: {testUri.Host}:{testUri.Port}");
+            }
+            catch (Exception uriEx)
+            {
+                Debug.LogError($"URI parsing error: {uriEx.Message}");
+                throw new Exception($"URI parsing error: {uriEx.Message}");
+            }
+
+            // Log connection details including Last-Event-Id and Trace-Id
+            if (!string.IsNullOrEmpty(_lastEventId) || !string.IsNullOrEmpty(_traceId))
+            {
+                Debug.Log($"Connecting to response stream: {url} (reconnecting with Last-Event-Id: {_lastEventId ?? "none"}, Trace-Id: {_traceId ?? "none"})");
             }
             else
             {
-                Debug.Log($"Connecting to response stream: {url} (fresh connection, no Last-Event-Id)");
+                Debug.Log($"Connecting to response stream: {url} (fresh connection, no Last-Event-Id or Trace-Id)");
             }
 
             // Reset SSE parsing state for new connection
             ResetEventState();
 
             using var request = UnityWebRequest.Get(url);
+            
+            // Disable timeout for SSE streaming connection (0 = no timeout)
+            request.timeout = 0;
 
             // Set headers for streaming
             request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
@@ -307,6 +323,12 @@ namespace player2_sdk
             if (!string.IsNullOrEmpty(_lastEventId))
             {
                 request.SetRequestHeader("Last-Event-Id", _lastEventId);
+            }
+            
+            // Send X-Player2-Trace-Id if we have one (for request tracing)
+            if (!string.IsNullOrEmpty(_traceId))
+            {
+                request.SetRequestHeader("X-Player2-Trace-Id", _traceId);
             }
 
             // Start the request
@@ -357,20 +379,34 @@ namespace player2_sdk
                         Debug.Log("Streaming request completed normally (server closed connection). Exiting stream loop.");
                         break; // Exit loop; caller will handle reconnection if still listening
                     }
-                    else if (request.result == UnityWebRequest.Result.ConnectionError ||
-                             request.result == UnityWebRequest.Result.ProtocolError ||
-                             request.result == UnityWebRequest.Result.DataProcessingError)
+                    else
                     {
+                        // Handle all non-success results gracefully
                         string errorMsg = request != null && !string.IsNullOrWhiteSpace(request.error)
                             ? request.error
                             : $"HTTP {(request != null && request.responseCode != 0 ? request.responseCode.ToString() : "<no status>")}";
-                        Debug.LogWarning($"Network error occurred - will attempt reconnection: ({request?.result}): {errorMsg}");
-                        throw new Exception($"Connection ended with error ({request?.result}): {errorMsg}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Streaming request ended with unexpected state {request.result}. Attempting reconnection if still listening.");
-                        break;
+
+                        string lastEventInfo = !string.IsNullOrEmpty(_lastEventId) 
+                            ? _lastEventId 
+                            : "none";
+
+                        // Special handling for common streaming errors
+                        string traceInfo = !string.IsNullOrEmpty(_traceId) ? _traceId : "none";
+                        
+                        if (errorMsg.Contains("Curl error 18"))
+                        {
+                            Debug.Log($"Server closed connection unexpectedly (Curl error 18), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                        }
+                        else if (errorMsg.Contains("Curl error 56"))
+                        {
+                            Debug.Log($"Connection reset by server (Curl error 56), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                        }
+                        else
+                        {
+                            Debug.Log($"UnityWebRequest.Result returned {request?.result}, errorMsg: {errorMsg}, responseCode: {request?.responseCode}, reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                        }
+                        
+                        break; // Exit loop to allow reconnection
                     }
                 }
 
@@ -383,6 +419,15 @@ namespace player2_sdk
                     {
                         connectionEstablished = true;
                         lastDataTime = Time.time; // Reset timeout timer on connection
+                        
+                        // Capture X-Player2-Trace-Id from response headers
+                        string newTraceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                        if (!string.IsNullOrEmpty(newTraceId) && newTraceId != _traceId)
+                        {
+                            _traceId = newTraceId;
+                            Debug.Log($"Captured X-Player2-Trace-Id: {_traceId}");
+                        }
+                        
                         Debug.Log("Streaming connection established (first bytes received)");
                     }
                 }
@@ -391,7 +436,7 @@ namespace player2_sdk
                 {
                     string newData = downloadHandler.text.Substring(lastProcessedLength);
                     lastProcessedLength = downloadHandler.text.Length;
-                    lastDataTime = Time.time; // Update last data received time
+                    lastDataTime = Time.time; // Reset timeout - any data including pings keeps connection alive
 
                     // Avoid logging entire buffer each time (can get very large). Log a preview instead.
                     if (Debug.isDebugBuild)
@@ -404,10 +449,17 @@ namespace player2_sdk
                 }
 
                 // Check for connection timeout (no data received for too long)
-                if (connectionEstablished && (Time.time - lastDataTime) > CONNECTION_TIMEOUT)
+                // Only check timeout if CONNECTION_TIMEOUT is greater than 0
+                if (CONNECTION_TIMEOUT > 0 && connectionEstablished && (Time.time - lastDataTime) > CONNECTION_TIMEOUT)
                 {
-                    Debug.LogWarning($"Connection timeout after {CONNECTION_TIMEOUT} seconds of no data");
-                    throw new Exception("Connection timeout - no data received");
+                    string lastEventInfo = !string.IsNullOrEmpty(_lastEventId) 
+                        ? _lastEventId 
+                        : "none";
+                    string traceInfo = !string.IsNullOrEmpty(_traceId) 
+                        ? _traceId 
+                        : "none";
+                    Debug.Log($"No data received for {CONNECTION_TIMEOUT} seconds (expected pings every 15s), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                    break; // Exit loop to trigger reconnection
                 }
 
                 // Check if component is still valid during loop execution
