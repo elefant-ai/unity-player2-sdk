@@ -600,7 +600,10 @@ namespace player2_sdk
             string errorMessage = response.data?.message ?? "Unknown STT error";
             int errorCode = response.data?.code ?? -1;
 
-            Debug.LogError($"STT error: {errorMessage} (Code: {errorCode})");
+            string requestId = response.metadata?.request_id;
+            string traceInfo = !string.IsNullOrEmpty(requestId) ? $" (Request-Id: {requestId})" : "";
+
+            Debug.LogError($"STT error: {errorMessage} (Code: {errorCode}){traceInfo}");
             OnSTTFailed?.Invoke(errorMessage, errorCode);
             SetListening(false);
         }

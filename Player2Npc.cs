@@ -65,10 +65,27 @@ namespace player2_sdk
         [Header("Events")] [SerializeField] private TMP_InputField inputField;
         [SerializeField] private TextMeshProUGUI outputMessage;
 
+        [Header("Debugging")]
+        [Tooltip("Custom trace ID for request tracking. If set, this will be added as X-Player2-Trace-Id header to all requests.")]
+        [SerializeField] private string customTraceId = "";
+
         private string _npcID = null;
 
+        /// <summary>
+        /// Sets a custom trace ID that will be included in all requests from this NPC
+        /// </summary>
+        public void SetCustomTraceId(string traceId)
+        {
+            customTraceId = traceId;
+        }
 
-
+        /// <summary>
+        /// Gets the current custom trace ID
+        /// </summary>
+        public string GetCustomTraceId()
+        {
+            return customTraceId;
+        }
 
         private string _clientID() => npcManager.clientId;
 
@@ -93,9 +110,6 @@ namespace player2_sdk
             {
                 Debug.LogWarning("InputField not assigned on Player2Npc; chat input disabled.", this);
             }
-
-
-
         }
 
         private void OnChatMessageSubmitted(string message)
@@ -141,7 +155,11 @@ namespace player2_sdk
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Accept", "application/json");
 
-            // Use Unity's native Awaitable async method
+            if (!string.IsNullOrEmpty(customTraceId))
+            {
+                request.SetRequestHeader("X-Player2-Trace-Id", customTraceId);
+            }
+
             await request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
@@ -160,7 +178,9 @@ namespace player2_sdk
             }
             else
             {
-                string error = $"Failed to spawn NPC: {request.error} - Response: {request.downloadHandler.text}";
+                string traceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                string traceInfo = !string.IsNullOrEmpty(traceId) ? $" (X-Player2-Trace-Id: {traceId})" : "";
+                string error = $"Failed to spawn NPC: {request.error} - Response: {request.downloadHandler.text}{traceInfo}";
                 Debug.LogError(error);
             }
         }
@@ -223,7 +243,11 @@ namespace player2_sdk
             request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
             request.SetRequestHeader("Content-Type", "application/json");
 
-            // Use Unity's native Awaitable async method
+            if (!string.IsNullOrEmpty(customTraceId))
+            {
+                request.SetRequestHeader("X-Player2-Trace-Id", customTraceId);
+            }
+
             await request.SendWebRequest();
 
             if (request.result == UnityWebRequest.Result.Success)
@@ -232,7 +256,9 @@ namespace player2_sdk
             }
             else
             {
-                string error = $"Failed to send message: {request.error} - Response: {request.downloadHandler.text}";
+                string traceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                string traceInfo = !string.IsNullOrEmpty(traceId) ? $" (X-Player2-Trace-Id: {traceId})" : "";
+                string error = $"Failed to send message: {request.error} - Response: {request.downloadHandler.text}{traceInfo}";
                 Debug.LogError(error);
             }
         }

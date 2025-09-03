@@ -133,7 +133,9 @@ namespace player2_sdk
             }
             else
             {
-                string error = $"Failed to start auth: {request.error} - Response: {request.downloadHandler.text}";
+                string traceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                string traceInfo = !string.IsNullOrEmpty(traceId) ? $" (X-Player2-Trace-Id: {traceId})" : "";
+                string error = $"Failed to start auth: {request.error} - Response: {request.downloadHandler.text}{traceInfo}";
                 Debug.LogError(error);
             }
             throw new Exception("Failed to start auth");
@@ -231,7 +233,9 @@ namespace player2_sdk
                     else
                     {
                         // Other errors are treated as fatal
-                        Debug.LogError($"Failed to get token: HTTP {code} - {request.error} - Response: {text}");
+                        string traceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                        string traceInfo = !string.IsNullOrEmpty(traceId) ? $" (X-Player2-Trace-Id: {traceId})" : "";
+                        Debug.LogError($"Failed to get token: HTTP {code} - {request.error} - Response: {text}{traceInfo}");
                         return null;
                     }
                 }

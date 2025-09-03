@@ -71,12 +71,12 @@ namespace player2_sdk
         private int _reconnectAttempts = 0;
         private string _lastEventId = null;
         private string _traceId = null;
-        
+
         // SSE event parsing state
         private string _currentEventId = null;
         private string _currentEventType = null;
         private StringBuilder _currentEventData = new StringBuilder();
-        
+
         // Buffer protection
         private const int MAX_EVENT_SIZE = 2 * 1024 * 1024; // 2MB max per event
         private const float CONNECTION_TIMEOUT = 300.0f; // 5 minutes - server should send pings every 15 seconds
@@ -295,21 +295,21 @@ namespace player2_sdk
                 throw new Exception($"URI parsing error: {uriEx.Message}");
             }
 
-            // Log connection details including Last-Event-Id and Trace-Id
+            // Log connection details including Last-Event-Id and X-Player2-Trace-Id
             if (!string.IsNullOrEmpty(_lastEventId) || !string.IsNullOrEmpty(_traceId))
             {
-                Debug.Log($"Connecting to response stream: {url} (reconnecting with Last-Event-Id: {_lastEventId ?? "none"}, Trace-Id: {_traceId ?? "none"})");
+                Debug.Log($"Connecting to response stream: {url} (reconnecting with Last-Event-Id: {_lastEventId ?? "none"}, X-Player2-Trace-Id: {_traceId ?? "none"})");
             }
             else
             {
-                Debug.Log($"Connecting to response stream: {url} (fresh connection, no Last-Event-Id or Trace-Id)");
+                Debug.Log($"Connecting to response stream: {url} (fresh connection, no Last-Event-Id or X-Player2-Trace-Id)");
             }
 
             // Reset SSE parsing state for new connection
             ResetEventState();
 
             using var request = UnityWebRequest.Get(url);
-            
+
             // Disable timeout for SSE streaming connection (0 = no timeout)
             request.timeout = 0;
 
@@ -324,7 +324,7 @@ namespace player2_sdk
             {
                 request.SetRequestHeader("Last-Event-Id", _lastEventId);
             }
-            
+
             // Send X-Player2-Trace-Id if we have one (for request tracing)
             if (!string.IsNullOrEmpty(_traceId))
             {
@@ -386,26 +386,33 @@ namespace player2_sdk
                             ? request.error
                             : $"HTTP {(request != null && request.responseCode != 0 ? request.responseCode.ToString() : "<no status>")}";
 
-                        string lastEventInfo = !string.IsNullOrEmpty(_lastEventId) 
-                            ? _lastEventId 
+                        string lastEventInfo = !string.IsNullOrEmpty(_lastEventId)
+                            ? _lastEventId
                             : "none";
+
+                        // Check for X-Player2-Trace-Id in error response
+                        string responseTraceId = request.GetResponseHeader("X-Player2-Trace-Id");
+                        if (!string.IsNullOrEmpty(responseTraceId))
+                        {
+                            _traceId = responseTraceId;
+                        }
 
                         // Special handling for common streaming errors
                         string traceInfo = !string.IsNullOrEmpty(_traceId) ? _traceId : "none";
-                        
+
                         if (errorMsg.Contains("Curl error 18"))
                         {
-                            Debug.Log($"Server closed connection unexpectedly (Curl error 18), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                            Debug.LogError($"Server closed connection unexpectedly (Curl error 18), reconnecting with Last-Event-Id: {lastEventInfo}, X-Player2-Trace-Id: {traceInfo}");
                         }
                         else if (errorMsg.Contains("Curl error 56"))
                         {
-                            Debug.Log($"Connection reset by server (Curl error 56), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                            Debug.LogError($"Connection reset by server (Curl error 56), reconnecting with Last-Event-Id: {lastEventInfo}, X-Player2-Trace-Id: {traceInfo}");
                         }
                         else
                         {
-                            Debug.Log($"UnityWebRequest.Result returned {request?.result}, errorMsg: {errorMsg}, responseCode: {request?.responseCode}, reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                            Debug.LogError($"UnityWebRequest.Result returned {request?.result}, errorMsg: {errorMsg}, responseCode: {request?.responseCode}, reconnecting with Last-Event-Id: {lastEventInfo}, X-Player2-Trace-Id: {traceInfo}");
                         }
-                        
+
                         break; // Exit loop to allow reconnection
                     }
                 }
@@ -419,7 +426,7 @@ namespace player2_sdk
                     {
                         connectionEstablished = true;
                         lastDataTime = Time.time; // Reset timeout timer on connection
-                        
+
                         // Capture X-Player2-Trace-Id from response headers
                         string newTraceId = request.GetResponseHeader("X-Player2-Trace-Id");
                         if (!string.IsNullOrEmpty(newTraceId) && newTraceId != _traceId)
@@ -427,7 +434,7 @@ namespace player2_sdk
                             _traceId = newTraceId;
                             Debug.Log($"Captured X-Player2-Trace-Id: {_traceId}");
                         }
-                        
+
                         Debug.Log("Streaming connection established (first bytes received)");
                     }
                 }
@@ -452,13 +459,13 @@ namespace player2_sdk
                 // Only check timeout if CONNECTION_TIMEOUT is greater than 0
                 if (CONNECTION_TIMEOUT > 0 && connectionEstablished && (Time.time - lastDataTime) > CONNECTION_TIMEOUT)
                 {
-                    string lastEventInfo = !string.IsNullOrEmpty(_lastEventId) 
-                        ? _lastEventId 
+                    string lastEventInfo = !string.IsNullOrEmpty(_lastEventId)
+                        ? _lastEventId
                         : "none";
-                    string traceInfo = !string.IsNullOrEmpty(_traceId) 
-                        ? _traceId 
+                    string traceInfo = !string.IsNullOrEmpty(_traceId)
+                        ? _traceId
                         : "none";
-                    Debug.Log($"No data received for {CONNECTION_TIMEOUT} seconds (expected pings every 15s), reconnecting with Last-Event-Id: {lastEventInfo}, Trace-Id: {traceInfo}");
+                    Debug.LogError($"No data received for {CONNECTION_TIMEOUT} seconds (expected pings every 15s), reconnecting with Last-Event-Id: {lastEventInfo}, X-Player2-Trace-Id: {traceInfo}");
                     break; // Exit loop to trigger reconnection
                 }
 
@@ -556,16 +563,16 @@ namespace player2_sdk
                     // Event IDs should not contain spaces per spec, but trim for safety
                     _currentEventId = fieldValue.Trim();
                     break;
-                    
+
                 case "event":
                     // Event types should be preserved as-is (though typically single words)
                     _currentEventType = fieldValue;
                     break;
-                    
+
                 case "data":
                     AppendDataLine(fieldValue);
                     break;
-                    
+
                 // Unknown fields are ignored per SSE spec (including "retry" for now)
             }
         }
@@ -700,7 +707,7 @@ namespace player2_sdk
             }
 
             Debug.Log(
-                $"Reconnection attempt {_reconnectAttempts}/{_maxReconnectAttempts} in {_reconnectDelay} seconds (Last-Event-Id: {_lastEventId ?? "none"})...");
+                $"Reconnection attempt {_reconnectAttempts}/{_maxReconnectAttempts} in {_reconnectDelay} seconds (Last-Event-Id: {_lastEventId ?? "none"}, X-Player2-Trace-Id: {_traceId ?? "none"})...");
             await Awaitable.WaitForSecondsAsync(_reconnectDelay);
         }
 
