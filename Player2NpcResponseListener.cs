@@ -63,8 +63,14 @@ namespace player2_sdk
     public class Player2NpcResponseListener : MonoBehaviour
     {
         public string _baseUrl = null;
-        [SerializeField] private float _reconnectDelay = 2.0f;
-        [SerializeField] private int _maxReconnectAttempts = 5;
+        [Header("Reconnection Settings")]
+        [SerializeField]
+        [Tooltip("Delay in seconds between reconnection attempts")]
+        public float _reconnectDelay = 2.0f;
+
+        [SerializeField]
+        [Tooltip("Maximum number of reconnection attempts before giving up")]
+        public int _maxReconnectAttempts = 5;
 
         private string apiKey;
         private bool _isListening = false;
@@ -89,7 +95,25 @@ namespace player2_sdk
 
         public bool IsListening => _isListening;
 
+        /// <summary>
+        /// Configures the reconnection settings for the response listener
+        /// </summary>
+        /// <param name="maxAttempts">Maximum number of reconnection attempts (default: 5)</param>
+        /// <param name="delaySeconds">Delay in seconds between reconnection attempts (default: 2.0f)</param>
+        public void SetReconnectionSettings(int maxAttempts, float delaySeconds)
+        {
+            _maxReconnectAttempts = maxAttempts;
+            _reconnectDelay = delaySeconds;
+            Debug.Log($"Reconnection settings configured: {maxAttempts} attempts, {delaySeconds}s delay");
+        }
 
+        /// <summary>
+        /// Gets the current reconnection settings
+        /// </summary>
+        public (int maxAttempts, float delay) GetReconnectionSettings()
+        {
+            return (_maxReconnectAttempts, _reconnectDelay);
+        }
 
         private void Awake()
         {

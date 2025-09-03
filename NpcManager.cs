@@ -136,10 +136,17 @@ namespace player2_sdk
                 return;
             }
 
-            // Add the component and configure it
-            _responseListener = gameObject.AddComponent<Player2NpcResponseListener>();
+            _responseListener = gameObject.GetComponent<Player2NpcResponseListener>();
+            if (_responseListener == null)
+            {
+                Debug.LogError("Player2NpcResponseListener component not found on NPC Manager GameObject. Please attach it in the editor.", this);
+                return;
+            }
+
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
             _responseListener._baseUrl = BaseUrl;
+
+            _responseListener.SetReconnectionSettings(5, 2.5f);
 
             NewApiKey.AddListener((apiKey) =>
             {
