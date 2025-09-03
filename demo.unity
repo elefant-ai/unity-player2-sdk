@@ -489,37 +489,6 @@ MonoBehaviour:
   NewApiKey:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &321986440
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 321986437}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 46eec569d22156fec83a68746ab70ee8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  _baseUrl: https://api.player2.game/v1
-  _reconnectDelay: 2.5
-  _maxReconnectAttempts: 5
-  JsonSerializerSettings:
-    NullValueHandling: 0
-    ContractResolver:
-      NamingStrategy:
-        ProcessDictionaryKeys: 1
-        OverrideSpecifiedNames: 0
-        ProcessExtensionDataNames: 0
-        ProcessPropertyNames: 1
-        _namingStrategyType: 0
-        _processDictionaryKeys: 1
-        _overrideSpecifiedNames: 0
-        _processExtensionDataNames: 0
-        _processPropertyNames: 1
-  newApiKey:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!4 &321986439
 Transform:
   m_ObjectHideFlags: 0
@@ -535,6 +504,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &321986440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 321986437}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46eec569d22156fec83a68746ab70ee8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _baseUrl: https://api.player2.game/v1
+  _reconnectDelay: 2.5
+  _maxReconnectAttempts: 5
+  newApiKey:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &360268682
 GameObject:
   m_ObjectHideFlags: 0
@@ -938,6 +925,7 @@ MonoBehaviour:
   voiceId: 01955d76-ed5b-7451-92d6-5ef579d3ed28
   inputField: {fileID: 771156932}
   outputMessage: {fileID: 1709263797}
+  customTraceId: 
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -2721,6 +2709,7 @@ MonoBehaviour:
   voiceId: 01955d76-ed5b-7451-92d6-5ef579d3ed28
   inputField: {fileID: 1957792275}
   outputMessage: {fileID: 608020533}
+  customTraceId: 
 --- !u!1 &1957792273
 GameObject:
   m_ObjectHideFlags: 0
@@ -2941,7 +2930,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2000000001}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ae2fcf8fd284b78bbaa6e7cfc10339c, type: 3}
+  m_Script: {fileID: 11500000, guid: c813427510f542ee9621473260e193cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.Player2STT
   sttEnabled: 1
@@ -2965,12 +2954,6 @@ MonoBehaviour:
   OnListeningStopped:
     m_PersistentCalls:
       m_Calls: []
-  OnReplyWaitStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  OnReplyWaitStopped:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &2000000004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2980,16 +2963,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 2000000001}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ea4e1fd7e7e44d8b6277585426583f9, type: 3}
+  m_Script: {fileID: 11500000, guid: 3c558f76f5b14720b8929b854906b7e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.STTController
   recordButton: {fileID: 2000000012}
-  recordButtonImage: {fileID: 0}
+  recordButtonImage: {fileID: 2000000011}
+  buttonText: {fileID: 0}
   transcriptText: {fileID: 2000000013}
   sttComponent: {fileID: 2000000003}
+  circleSprite: {fileID: 0}
+  squareSprite: {fileID: 0}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   recordingColor: {r: 1, g: 0, b: 0, a: 1}
   waitingColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  recordText: REC
+  stopText: STOP
+  connectingText: ...
+  processingText: WAIT
+  showTimestamps: 1
+  showTranscriptNumbers: 1
+  maxTranscripts: 100
 --- !u!1 &2000000005
 GameObject:
   m_ObjectHideFlags: 0

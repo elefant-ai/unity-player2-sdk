@@ -1,4 +1,6 @@
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace player2_sdk
 {
@@ -129,7 +131,14 @@ namespace player2_sdk
 
         private void Awake()
         {
+#if UNITY_EDITOR
             PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
+#endif
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // For WebGL builds, we'll handle certificate validation differently
+            // This is set at runtime, not in PlayerSettings
+#endif
             if (string.IsNullOrEmpty(clientId))
             {
                 Debug.LogError("NpcManager requires a Client ID to be set.", this);
@@ -150,12 +159,11 @@ namespace player2_sdk
 
             NewApiKey.AddListener((apiKey) =>
             {
-                Debug.Log("New API Key received");
-
-
-                _responseListener.newApiKey.Invoke(apiKey);
+                Debug.Log($"New API Key received: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"}");
                 this.apiKey = apiKey;
+                _responseListener.newApiKey.Invoke(apiKey);
                 spawnNpcs.Invoke();
+                Debug.Log($"NpcManager: API key set successfully. Length: {apiKey?.Length ?? 0}");
             });
 
 
