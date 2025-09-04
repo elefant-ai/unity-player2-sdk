@@ -171,27 +171,82 @@ That’s it—hit **Play** and chat away.
 
 
 ## Adding rich NPC functions (Optional)
-If you want to allow for a higher level of AI interactivity, 
+If you want to allow for a higher level of AI interactivity,
 1. Add a script like the sample below to the Scene Root.
 2. In **NpcManager → Function Handler**, press **+**, drag the object, then pick **ExampleFunctionHandler → HandleFunctionCall**.
 
 ```csharp
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
-public class ExampleFunctionHandler : MonoBehaviour
+namespace player2_sdk
 {
-    public void HandleFunctionCall(FunctionCall call)
+    public class ExampleFunctionHandler : MonoBehaviour
     {
-        if (call.name == "flame")
+        public void HandleFunctionCall(FunctionCall functionCall)
         {
-            float radius = call.ArgumentAsFloat("radius", defaultValue: 3f);
-            SpawnFlameCloud(radius);
-        }
-    }
+            Debug.Log($"Handling function call: {functionCall.name}");
 
-    void SpawnFlameCloud(float r)
-    {
-        // Your VFX / gameplay code here
+            // Example: Handle a flame function call
+            if (functionCall.name == "flame")
+            {
+                // Access arguments from the JObject
+                if (functionCall.arguments.TryGetValue("radius", out JToken radiusToken))
+                {
+                    float radius = radiusToken.Value<float>();
+                    SpawnFlameCloud(radius);
+                }
+                else
+                {
+                    // Use default value if argument not provided
+                    SpawnFlameCloud(3f);
+                }
+            }
+            else if (functionCall.name == "teleport")
+            {
+                // Handle teleport function with multiple arguments
+                if (functionCall.arguments.TryGetValue("x", out JToken xToken) &&
+                    functionCall.arguments.TryGetValue("y", out JToken yToken) &&
+                    functionCall.arguments.TryGetValue("z", out JToken zToken))
+                {
+                    Vector3 position = new Vector3(
+                        xToken.Value<float>(),
+                        yToken.Value<float>(),
+                        zToken.Value<float>()
+                    );
+                    TeleportNpc(functionCall.aiObject, position);
+                }
+            }
+            else if (functionCall.name == "spawn_item")
+            {
+                // Handle spawn_item function with string and numeric arguments
+                string itemName = functionCall.arguments["item_name"]?.Value<string>() ?? "default_item";
+                int quantity = functionCall.arguments["quantity"]?.Value<int>() ?? 1;
+                SpawnItem(itemName, quantity, functionCall.aiObject.transform.position);
+            }
+        }
+
+        void SpawnFlameCloud(float radius)
+        {
+            // Your VFX / gameplay code here
+            Debug.Log($"Spawning flame cloud with radius: {radius}");
+        }
+
+        void TeleportNpc(GameObject npc, Vector3 position)
+        {
+            // Teleport the NPC to the specified position
+            npc.transform.position = position;
+            Debug.Log($"Teleported NPC to: {position}");
+        }
+
+        void SpawnItem(string itemName, int quantity, Vector3 position)
+        {
+            // Spawn items in the game world
+            for (int i = 0; i < quantity; i++)
+            {
+                Debug.Log($"Spawning {itemName} at {position}");
+            }
+        }
     }
 }
 ```
@@ -199,7 +254,63 @@ public class ExampleFunctionHandler : MonoBehaviour
 You never respond manually; the back‑end keeps streaming text while your Unity logic happens in parallel.
 Now, whenever the model decides the NPC should *act*, `HandleFunctionCall` fires on the main thread.
 
+### Setting up the Function Handler
+
+In the Unity Editor:
+
+1. Select your **NpcManager** GameObject
+2. In the Inspector, find the **Function Handler** section
+3. Click the **+** button to add a new event handler
+4. Drag your **ExampleFunctionHandler** GameObject into the object field
+5. Select **ExampleFunctionHandler → HandleFunctionCall(FunctionCall)** from the dropdown
+
 ![Selecting HandleFunctionCall in the UnityEvent dropdown](https://cdn.elefant.gg/unity-sdk/function-handler-config.png)
+
+### Function Call Flow
+
+1. **NPC Response**: When an NPC responds with a function call, it's received via SSE
+2. **Parsing**: The response is parsed and converted to a `FunctionCall` object
+3. **Event Trigger**: The `functionHandler` UnityEvent is invoked on the main thread
+4. **Execution**: Your `HandleFunctionCall` method executes with the function details
+5. **Game Logic**: Your game code runs, potentially spawning effects, moving objects, etc.
+
+### Function Arguments
+
+Function calls include:
+- `name`: The function name (e.g., "flame", "teleport")
+- `arguments`: A JObject containing the function parameters
+- `aiObject`: Reference to the NPC GameObject that triggered the function call
+
+You can access arguments using JObject methods like `TryGetValue` or direct indexing with null-coalescing operators for safe access.
+
+### Advanced Function Handler Example
+
+For more complex scenarios, see `AdvancedFunctionHandler.cs` which demonstrates:
+
+- **Type-safe argument extraction** with generic helper methods
+- **Multiple function types** (combat, healing, teleportation, item spawning)
+- **State tracking** and function call statistics
+- **Resource management** for spawned objects
+- **Error handling** and fallback behavior
+- **Integration patterns** with Unity components and audio
+- **Configuration options** via serialized fields
+
+The advanced handler includes examples of:
+- Safe type conversion from JObject to C# types
+- Default value handling for missing arguments
+- Coroutine-based delayed actions
+- Object pooling and cleanup
+- Integration with Unity's AudioSource and effects systems
+
+### Best Practices
+
+1. **Always handle exceptions** in your function handlers
+2. **Use type-safe argument extraction** to prevent runtime errors
+3. **Provide sensible defaults** for optional parameters
+4. **Log function calls** for debugging and analytics
+5. **Clean up spawned objects** to prevent memory leaks
+6. **Consider performance** - function calls run on the main thread
+7. **Test edge cases** like missing arguments or invalid values
 
 ---
 
