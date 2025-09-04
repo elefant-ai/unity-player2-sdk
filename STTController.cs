@@ -36,7 +36,6 @@ namespace player2_sdk
         [SerializeField] private bool showTranscriptNumbers = true;
         [SerializeField] private int maxTranscripts = 100;
 
-        private bool isWebSocketConnected = false;
         private bool isCurrentlyRecording = false;
 
         // Transcript accumulation
@@ -254,7 +253,6 @@ namespace player2_sdk
             {
                 sttComponent.StopSTT();
                 isCurrentlyRecording = false;
-                isWebSocketConnected = false;
                 SetButtonState(ButtonState.Normal);
             }
         }
@@ -338,13 +336,11 @@ namespace player2_sdk
             UpdateTranscriptDisplay();
 
             isCurrentlyRecording = false;
-            isWebSocketConnected = false;
             SetButtonState(ButtonState.Normal);
         }
 
         private void OnListeningStarted()
         {
-            isWebSocketConnected = true;
             isCurrentlyRecording = true;
             SetButtonState(ButtonState.Recording);
         }
@@ -352,7 +348,6 @@ namespace player2_sdk
         private void OnListeningStopped()
         {
             isCurrentlyRecording = false;
-            isWebSocketConnected = false;
             SetButtonState(ButtonState.Normal);
         }
 

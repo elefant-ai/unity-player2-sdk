@@ -5,16 +5,12 @@ namespace player2_sdk
     using System;
     using System.Collections.Generic;
     using System.Text;
-    using System.Threading;
     using JetBrains.Annotations;
     using TMPro;
     using UnityEngine;
     using UnityEngine.Events;
     using UnityEngine.Networking;
-    using UnityEngine.Serialization;
-    using UnityEngine.UI;
     using Newtonsoft.Json;
-    using Unity.VisualScripting;
 
     [Serializable]
     public class TTSInfo

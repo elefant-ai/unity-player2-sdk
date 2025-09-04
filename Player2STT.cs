@@ -111,8 +111,6 @@ namespace player2_sdk
         [Header("STT Configuration")]
         [SerializeField] private bool sttEnabled = true;
 
-        [SerializeField] private float leftoverReceiveWaitTime = 0.5f;
-        [SerializeField] private float releaseMaxWaitTime = 1.5f;
         [SerializeField] private float heartbeatInterval = 5f;
         [SerializeField] private bool enableVAD = false;
         [SerializeField] private bool enableInterimResults = false;

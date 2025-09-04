@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using UnityEditor;
 using UnityEngine.Networking;
 
 namespace player2_sdk
