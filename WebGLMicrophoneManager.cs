@@ -41,6 +41,7 @@ namespace Player2SDK.WebGL
         /// </summary>
         public void Initialize()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
             if (!WebGLMicrophone_IsSupported())
             {
                 Debug.LogError("WebGL Microphone: Browser does not support microphone access");
@@ -49,6 +50,10 @@ namespace Player2SDK.WebGL
             }
 
             WebGLMicrophone_Init(gameObject.name, "OnWebGLInitCallback");
+#else
+            Debug.LogWarning("WebGL Microphone: Not supported in Unity Editor. Microphone functionality will be disabled.");
+            OnInitialized?.Invoke(false);
+#endif
         }
 
         /// <summary>
@@ -56,6 +61,7 @@ namespace Player2SDK.WebGL
         /// </summary>
         public void StartRecording()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
             if (!isInitialized)
             {
                 Debug.LogWarning("WebGL Microphone: Not initialized yet");
@@ -71,6 +77,9 @@ namespace Player2SDK.WebGL
             {
                 Debug.LogError("WebGL Microphone: Failed to start recording");
             }
+#else
+            Debug.LogWarning("WebGL Microphone: Not supported in Unity Editor");
+#endif
         }
 
         /// <summary>
@@ -78,11 +87,15 @@ namespace Player2SDK.WebGL
         /// </summary>
         public void StopRecording()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
             if (WebGLMicrophone_StopRecording())
             {
                 isRecording = false;
                 Debug.Log("WebGL Microphone: Recording stopped");
             }
+#else
+            Debug.LogWarning("WebGL Microphone: Not supported in Unity Editor");
+#endif
         }
 
         /// <summary>
@@ -90,7 +103,9 @@ namespace Player2SDK.WebGL
         /// </summary>
         public void Dispose()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
             WebGLMicrophone_Dispose();
+#endif
             isInitialized = false;
             isRecording = false;
         }
@@ -103,7 +118,12 @@ namespace Player2SDK.WebGL
         /// <summary>
         /// Check if microphone is initialized
         /// </summary>
-        public bool IsInitialized => isInitialized;
+        public bool IsInitialized =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            isInitialized;
+#else
+            false;
+#endif
 
         // Callback from JavaScript via SendMessage
         private void OnWebGLInitCallback(string success)

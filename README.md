@@ -2,21 +2,52 @@
 
 # 🗺️ Table of contents
 
-1. [Getting Started](#getting-started)
+1. [SDK Files](#sdk-files)
+2. [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
+    - [Quick Setup](#quick-setup)
     - [Integration Steps](#integration-steps)
     - [Authentication Setup](#authentication-setup)
-2. [NpcManager](#npcmanager)
+3. [NpcManager](#npcmanager)
     - [Introduction](#introduction)
     - [Example setup of NpcManager](#example-setup-of-npcmanager)
-3. [NPC Setup](#npc-setup)
+4. [NPC Setup](#npc-setup)
     - [Npc Initialisation](#npc-initialisation)
     - [Configure the NPC component](#configure-the-npc-component)
-4. [Adding rich NPC functions (Optional)](#adding-rich-npc-functions-optional)
-5. [Speech-to-Text Integration](#speech-to-text-integration)
-    - [STT Setup](#stt-setup) 
+5. [Adding rich NPC functions (Optional)](#adding-rich-npc-functions-optional)
+6. [Speech-to-Text Integration](#speech-to-text-integration)
+    - [STT Setup](#stt-setup)
     - [STT Controller](#stt-controller)
     - [Customization](#customization)
+
+---
+
+# SDK Files
+
+## Core Components
+
+### NPC Management
+- **`NpcManager.cs`** - Main NPC management and API communication
+- **`Player2Npc.cs`** - Individual NPC behavior and chat handling
+- **`Player2NpcResponseListener.cs`** - WebSocket response processing
+- **`Login.cs`** - OAuth authentication flow
+
+### Speech-to-Text (STT)
+- **`Player2STT.cs`** - Real-time speech-to-text functionality
+- **`STTController.cs`** - UI controller for STT recording
+- **`WebGLMicrophoneManager.cs`** - WebGL microphone access
+- **`WebGLMicrophone.jslib`** - JavaScript interop for WebGL audio
+
+### Audio Playback
+- **`IAudioPlayer.cs`** - Audio playback interface
+- **`WebGLAudioPlayer.cs`** - WebGL-specific audio player
+- **`DefaultAudioPlayer.cs`** - Standard Unity audio player
+- **`AudioPlayerFactory.cs`** - Platform-specific player selection
+
+### Documentation & License
+- **`ExampleFunctionHandler.cs`** - Sample function handler implementation
+- **`README.md`** - This documentation file
+- **`LICENSE.md`** - MIT license information
 
 ---
 
@@ -39,43 +70,23 @@ The quickest way to experiment with unity-player2-sdk is to:
    ```bash
    git clone git@github.com:elefant-ai/unity-player2-sdk
    cd unity-player2-sdk
-   mkdir -p Projects
    ```
 
 2. **Create Unity project**
    - Go to Unity Hub
    - Create new project → 2D (Built-in Render Pipeline)
-   - Name it "BasicChat" and save it in the `Projects` directory
 
-3. **Link assets**
+3. **Import SDK files**
    ```bash
-   cd Projects/BasicChat
+   cd YourUnityProject  # Your Unity project directory
    mkdir -p Assets/Player2SDK
-   ln -s ../../../ExampleFunctionHandler.cs Assets/Player2SDK/ExampleFunctionHandler.cs
-   ln -s ../../../ExampleFunctionHandler.cs.meta Assets/Player2SDK/ExampleFunctionHandler.cs.meta
-   ln -s ../../../Login.cs Assets/Player2SDK/Login.cs
-   ln -s ../../../Login.cs.meta Assets/Player2SDK/Login.cs.meta
-   ln -s ../../../NpcManager.cs Assets/Player2SDK/NpcManager.cs
-   ln -s ../../../NpcManager.cs.meta Assets/Player2SDK/NpcManager.cs.meta
-   ln -s ../../../Player2Npc.cs Assets/Player2SDK/Player2Npc.cs
-   ln -s ../../../Player2Npc.cs.meta Assets/Player2SDK/Player2Npc.cs.meta
-   ln -s ../../../Player2NpcResponseListener.cs Assets/Player2SDK/Player2NpcResponseListener.cs
-   ln -s ../../../Player2NpcResponseListener.cs.meta Assets/Player2SDK/Player2NpcResponseListener.cs.meta
-   ln -s ../../../Player2STT.cs Assets/Player2SDK/Player2STT.cs
-   ln -s ../../../Player2STT.cs.meta Assets/Player2SDK/Player2STT.cs.meta
-   ln -s ../../../STTController.cs Assets/Player2SDK/STTController.cs
-   ln -s ../../../STTController.cs.meta Assets/Player2SDK/STTController.cs.meta
-   ln -s ../../../IAudioPlayer.cs Assets/Player2SDK/IAudioPlayer.cs
-   ln -s ../../../IAudioPlayer.cs.meta Assets/Player2SDK/IAudioPlayer.cs.meta
-   ln -s ../../../WebGLAudioPlayer.cs Assets/Player2SDK/WebGLAudioPlayer.cs
-   ln -s ../../../WebGLAudioPlayer.cs.meta Assets/Player2SDK/WebGLAudioPlayer.cs.meta
-   ln -s ../../../DefaultAudioPlayer.cs Assets/Player2SDK/DefaultAudioPlayer.cs
-   ln -s ../../../DefaultAudioPlayer.cs.meta Assets/Player2SDK/DefaultAudioPlayer.cs.meta
-   ln -s ../../../AudioPlayerFactory.cs Assets/Player2SDK/AudioPlayerFactory.cs
-   ln -s ../../../AudioPlayerFactory.cs.meta Assets/Player2SDK/AudioPlayerFactory.cs.meta
-   ln -s ../../../demo.unity Assets/Scenes/demo.unity
-   ln -s ../../../demo.unity.meta Assets/Scenes/demo.unity.meta
+   # Create symlinks to SDK files (changes automatically propagate)
+   ln -s /path/to/unity-player2-sdk/*.cs Assets/Player2SDK/
+   ln -s /path/to/unity-player2-sdk/*.jslib Assets/Player2SDK/
+   ln -s /path/to/unity-player2-sdk/*.meta Assets/Player2SDK/
    ```
+
+   > **💡 Tip**: Symlinks ensure SDK updates automatically propagate to your project!
 
 4. **Import TextMeshPro assets**
    - Click Window → TextMeshPro → Import TMP Essential Resources
@@ -83,16 +94,18 @@ The quickest way to experiment with unity-player2-sdk is to:
 5. **Reimport all assets**
    - Go to Assets → Reimport All
 
-6. **Run the demo**
-   - Choose the demo scene from the project details and run!
+6. **Set up your scene**
+   - Create a new scene or use an existing one
+   - Add the SDK components as described in the integration steps below
 
 7. **Update the SDK**
-   - If you need to update the SDK - just do `git pull --rebase origin main` and Assets → Reimport All - that's it!
+   - Run `git pull --rebase origin main` and Assets → Reimport All
+   - Symlinks automatically pick up the latest changes!
 
 ### Integration Steps
 
 1. **Import the SDK**
-   - Copy all `.cs` files from this repository to your Unity project's `Assets` folder
+   - Symlink all `.cs`, `.jslib`, and `.meta` files from this repository to your Unity project's `Assets` folder
    - Unity will automatically compile the scripts
 
 2. **Set Up NpcManager**

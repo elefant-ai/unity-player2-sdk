@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NativeWebSocket;
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
 using Player2SDK.WebGL;
 #endif
 
@@ -66,7 +66,7 @@ public class NativeWebSocketConnection : IWebSocketConnection
 #endif
 }
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
 /// <summary>
 /// WebSocket implementation for WebGL platform
 /// </summary>
@@ -139,7 +139,7 @@ namespace player2_sdk
         private Coroutine audioStreamCoroutine;
         private Coroutine heartbeatCoroutine;
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         private WebGLMicrophoneManager webGLMicManager;
 #endif
         private CancellationTokenSource connectionCts;
@@ -206,7 +206,7 @@ namespace player2_sdk
         /// <summary>
         /// Check if Speech-to-Text is supported on the current platform
         /// </summary>
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         public bool IsSTTSupported => webGLMicManager != null && webGLMicManager.IsInitialized;
 #else
         public bool IsSTTSupported => true;
@@ -216,7 +216,7 @@ namespace player2_sdk
 
         #region WebGL Methods
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         /// <summary>
         /// Callback when WebGL microphone is initialized
         /// </summary>
@@ -228,7 +228,7 @@ namespace player2_sdk
             }
             else
             {
-                Debug.LogError("Player2STT: Failed to initialize WebGL microphone");
+                Debug.LogWarning("Player2STT: WebGL microphone initialization failed (expected in Unity Editor)");
             }
         }
 
@@ -275,15 +275,14 @@ namespace player2_sdk
                 return;
             }
 
-#if UNITY_WEBGL
-            // Initialize WebGL microphone manager
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Initialize WebGL microphone manager (only in actual WebGL builds)
             webGLMicManager = gameObject.AddComponent<WebGLMicrophoneManager>();
             webGLMicManager.OnAudioDataReceived += OnWebGLAudioDataReceived;
             webGLMicManager.OnInitialized += OnWebGLMicInitialized;
             webGLMicManager.Initialize();
-#endif
-
-#if !UNITY_WEBGL
+#else
+            // Use regular Unity microphone (in editor or non-WebGL builds)
             if (Microphone.devices.Length > 0)
             {
                 microphoneDevice = Microphone.devices[0];
@@ -292,8 +291,6 @@ namespace player2_sdk
             {
                 Debug.LogError("Player2STT: No microphone devices found!");
             }
-#else
-            Debug.LogWarning("Player2STT: Microphone recording is not supported in WebGL builds. Speech-to-text functionality will be disabled.");
 #endif
         }
 
@@ -439,7 +436,7 @@ namespace player2_sdk
 
                 string url = $"{websocketUrl}/stt/stream?{string.Join("&", queryParams)}";
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
                 webSocket = new WebGLWebSocketConnection(url);
 #else
                 webSocket = new NativeWebSocketConnection(url);
@@ -452,7 +449,7 @@ namespace player2_sdk
                     heartbeatCoroutine = StartCoroutine(HeartbeatLoop());
 
                     // Start microphone only after WebSocket is connected
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
                     if (webGLMicManager != null && webGLMicManager.IsInitialized && audioStreamRunning)
                     {
                         webGLMicManager.StartRecording();
@@ -552,7 +549,19 @@ namespace player2_sdk
 
         private void StartMicrophone()
         {
-#if !UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // For WebGL, microphone recording is started when WebSocket connects
+            // This prevents sending audio data before the connection is ready
+            if (webGLMicManager != null && webGLMicManager.IsInitialized)
+            {
+                // WebGL microphone will be started when WebSocket OnOpen event fires
+                Debug.Log("Player2STT: WebGL microphone ready, will start when WebSocket connects");
+            }
+            else
+            {
+                Debug.LogWarning("Player2STT: WebGL microphone not initialized");
+            }
+#else
             if (string.IsNullOrEmpty(microphoneDevice))
             {
                 Debug.LogError("Cannot start microphone: no device selected");
@@ -567,32 +576,20 @@ namespace player2_sdk
             if (audioStreamCoroutine != null)
                 StopCoroutine(audioStreamCoroutine);
             audioStreamCoroutine = StartCoroutine(StreamAudioData());
-#else
-            // For WebGL, microphone recording is started when WebSocket connects
-            // This prevents sending audio data before the connection is ready
-            if (webGLMicManager != null && webGLMicManager.IsInitialized)
-            {
-                // WebGL microphone will be started when WebSocket OnOpen event fires
-                Debug.Log("Player2STT: WebGL microphone ready, will start when WebSocket connects");
-            }
-            else
-            {
-                Debug.LogWarning("Player2STT: WebGL microphone not initialized");
-            }
 #endif
         }
 
         private void StopMicrophone()
         {
-#if !UNITY_WEBGL
-            if (Microphone.IsRecording(microphoneDevice))
-            {
-                Microphone.End(microphoneDevice);
-            }
-#else
+#if UNITY_WEBGL && !UNITY_EDITOR
             if (webGLMicManager != null && webGLMicManager.IsRecording)
             {
                 webGLMicManager.StopRecording();
+            }
+#else
+            if (Microphone.IsRecording(microphoneDevice))
+            {
+                Microphone.End(microphoneDevice);
             }
 #endif
 
@@ -607,7 +604,10 @@ namespace player2_sdk
         {
             float chunkDuration = audioChunkDurationMs / 1000f;
 
-#if !UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.LogWarning("Player2STT: Audio streaming is not supported in WebGL builds.");
+            yield break;
+#else
             if (!audioStreamRunning || !Microphone.IsRecording(microphoneDevice))
                 yield break;
 
@@ -616,9 +616,6 @@ namespace player2_sdk
                 ProcessAudioChunk();
                 yield return new WaitForSeconds(chunkDuration);
             }
-#else
-            Debug.LogWarning("Player2STT: Audio streaming is not supported in WebGL builds.");
-            yield break;
 #endif
         }
 
@@ -627,7 +624,9 @@ namespace player2_sdk
             if (microphoneClip == null || webSocket?.State != WebSocketState.Open)
                 return;
 
-#if !UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.LogWarning("Player2STT: Audio processing is not supported in WebGL builds.");
+#else
             int currentPosition = Microphone.GetPosition(microphoneDevice);
 
             if (currentPosition == lastMicrophonePosition)
@@ -680,8 +679,6 @@ namespace player2_sdk
 
                 lastMicrophonePosition = currentPosition;
             }
-#else
-            Debug.LogWarning("Player2STT: Audio processing is not supported in WebGL builds.");
 #endif
         }
 

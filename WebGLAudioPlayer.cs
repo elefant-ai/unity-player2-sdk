@@ -3,6 +3,8 @@ namespace player2_sdk
 {
     using System;
     using System.Collections;
+    using System.IO;
+    using System.Runtime.InteropServices;
     using UnityEngine;
     using UnityEngine.Networking;
 
@@ -64,24 +66,30 @@ namespace player2_sdk
                 yield break;
             }
 
-            // For WebGL, we need to use a different approach since file:// protocol doesn't work
-            // We'll create an upload handler with the raw bytes and use UnityWebRequest to process it
-            using (var request = new UnityWebRequest())
+#if UNITY_EDITOR
+            // In Unity Editor, use temporary files to avoid URI length limits
+            string tempPath = Path.Combine(Application.temporaryCachePath, $"audio_{Guid.NewGuid().ToString("N")}.mp3");
+
+            try
             {
-                request.url = "data:audio/mpeg;base64," + base64String;
-                request.method = "GET";
+                File.WriteAllBytes(tempPath, audioBytes);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Cannot play audio for {identifier}: failed to write audio data to temp file: {ex.Message}");
+                yield break;
+            }
 
-                // Create download handler for audio
-                var downloadHandler = new DownloadHandlerAudioClip(request.url, AudioType.MPEG);
-                request.downloadHandler = downloadHandler;
-
+            // Load and play from temp file
+            using (var request = UnityWebRequestMultimedia.GetAudioClip($"file://{tempPath}", AudioType.MPEG))
+            {
                 yield return request.SendWebRequest();
 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     try
                     {
-                        AudioClip clip = downloadHandler.audioClip;
+                        AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
                         if (clip != null)
                         {
                             audioSource.clip = clip;
@@ -101,9 +109,69 @@ namespace player2_sdk
                 else
                 {
                     string errorDetails = request.error ?? "Unknown UnityWebRequest error";
-                    Debug.LogError($"Cannot play audio for {identifier}: failed to load audio data - {errorDetails}");
+                    Debug.LogError($"Cannot play audio for {identifier}: failed to load audio file - {errorDetails}");
                 }
             }
+
+            // Cleanup after 5 seconds (with error handling)
+            yield return new WaitForSeconds(5f);
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                    Debug.Log($"Cleaned up temporary audio file for {identifier}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Failed to cleanup temporary audio file for {identifier}: {ex.Message}");
+            }
+#else
+            // For actual WebGL builds, use JavaScript interop to play audio directly in browser
+            try
+            {
+                // Convert byte array to base64 for JavaScript
+                string base64Audio = Convert.ToBase64String(audioBytes);
+
+                // Call JavaScript function to play audio
+                PlayAudioWithJavaScript(identifier, base64Audio, audioSource);
+
+                Debug.Log($"Playing audio for {identifier} using JavaScript interop");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Cannot play audio for {identifier}: JavaScript interop failed: {ex.Message}");
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Play audio using JavaScript interop (WebGL only)
+        /// </summary>
+        [DllImport("__Internal")]
+        private static extern void PlayWebGLAudio(string identifier, string base64Audio);
+
+        /// <summary>
+        /// Helper method to play audio via JavaScript
+        /// </summary>
+        private void PlayAudioWithJavaScript(string identifier, string base64Audio, AudioSource audioSource)
+        {
+            PlayWebGLAudio(identifier, base64Audio);
+        }
+
+        /// <summary>
+        /// Converts byte array to float array for AudioClip
+        /// </summary>
+        private float[] ConvertBytesToFloatArray(byte[] bytes)
+        {
+            float[] floats = new float[bytes.Length / 2]; // 16-bit samples
+            for (int i = 0; i < floats.Length; i++)
+            {
+                short sample = (short)((bytes[i * 2 + 1] << 8) | bytes[i * 2]);
+                floats[i] = sample / 32768f; // Convert to -1.0 to 1.0 range
+            }
+            return floats;
         }
 
         /// <summary>
