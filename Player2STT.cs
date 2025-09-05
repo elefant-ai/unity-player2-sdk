@@ -240,6 +240,12 @@ namespace player2_sdk
             if (audioData == null || audioData.Length == 0)
                 return;
 
+            // Only send audio data if WebSocket is connected and ready
+            if (webSocket == null || webSocket.State != WebSocketState.Open)
+            {
+                return;
+            }
+
             // Process audio data similar to non-WebGL version
             byte[] audioBytes = ConvertAudioToBytes(audioData);
 

@@ -2,8 +2,8 @@ mergeInto(LibraryManager.library, {
 
   // WebGL Microphone API for Unity
   WebGLMicrophone_Init: function(gameObjectNamePtr, callbackMethodNamePtr) {
-    var gameObjectName = Pointer_stringify(gameObjectNamePtr);
-    var callbackMethodName = Pointer_stringify(callbackMethodNamePtr);
+    var gameObjectName = UTF8ToString(gameObjectNamePtr);
+    var callbackMethodName = UTF8ToString(callbackMethodNamePtr);
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("WebGLMicrophone: getUserMedia not supported");
@@ -100,6 +100,47 @@ mergeInto(LibraryManager.library, {
 
   WebGLMicrophone_IsSupported: function() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  },
+
+  // WebGL Audio Playback API for Unity
+  PlayWebGLAudio: function(identifierPtr, base64AudioPtr) {
+    var identifier = UTF8ToString(identifierPtr);
+    var base64Audio = UTF8ToString(base64AudioPtr);
+
+    try {
+      // Convert base64 to blob
+      var binaryString = atob(base64Audio);
+      var bytes = new Uint8Array(binaryString.length);
+      for (var i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      var blob = new Blob([bytes], { type: 'audio/mpeg' });
+      var audioUrl = URL.createObjectURL(blob);
+
+      // Create and play audio element
+      var audio = new Audio(audioUrl);
+      audio.crossOrigin = 'anonymous';
+
+      // Clean up blob URL after audio loads
+      audio.onloadeddata = function() {
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      // Play the audio
+      var playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.then(function() {
+          console.log("WebGLAudio: Playing audio for " + identifier);
+        }).catch(function(error) {
+          console.error("WebGLAudio: Failed to play audio for " + identifier + ":", error);
+        });
+      }
+
+    } catch (error) {
+      console.error("WebGLAudio: Error playing audio for " + identifier + ":", error);
+    }
   }
 
 });

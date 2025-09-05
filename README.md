@@ -65,6 +65,14 @@ The quickest way to experiment with unity-player2-sdk is to:
    ln -s ../../../Player2STT.cs.meta Assets/Player2SDK/Player2STT.cs.meta
    ln -s ../../../STTController.cs Assets/Player2SDK/STTController.cs
    ln -s ../../../STTController.cs.meta Assets/Player2SDK/STTController.cs.meta
+   ln -s ../../../IAudioPlayer.cs Assets/Player2SDK/IAudioPlayer.cs
+   ln -s ../../../IAudioPlayer.cs.meta Assets/Player2SDK/IAudioPlayer.cs.meta
+   ln -s ../../../WebGLAudioPlayer.cs Assets/Player2SDK/WebGLAudioPlayer.cs
+   ln -s ../../../WebGLAudioPlayer.cs.meta Assets/Player2SDK/WebGLAudioPlayer.cs.meta
+   ln -s ../../../DefaultAudioPlayer.cs Assets/Player2SDK/DefaultAudioPlayer.cs
+   ln -s ../../../DefaultAudioPlayer.cs.meta Assets/Player2SDK/DefaultAudioPlayer.cs.meta
+   ln -s ../../../AudioPlayerFactory.cs Assets/Player2SDK/AudioPlayerFactory.cs
+   ln -s ../../../AudioPlayerFactory.cs.meta Assets/Player2SDK/AudioPlayerFactory.cs.meta
    ln -s ../../../demo.unity Assets/Scenes/demo.unity
    ln -s ../../../demo.unity.meta Assets/Scenes/demo.unity.meta
    ```
