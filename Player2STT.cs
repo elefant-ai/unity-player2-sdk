@@ -573,6 +573,12 @@ namespace player2_sdk
             microphoneClip = Microphone.Start(microphoneDevice, true, 10, sampleRate);
             lastMicrophonePosition = 0;
 
+            if (microphoneClip == null)
+            {
+                Debug.LogError($"Player2STT: Failed to start microphone recording for device '{microphoneDevice}'");
+                return;
+            }
+
             if (audioStreamCoroutine != null)
                 StopCoroutine(audioStreamCoroutine);
             audioStreamCoroutine = StartCoroutine(StreamAudioData());
@@ -632,6 +638,18 @@ namespace player2_sdk
             if (currentPosition == lastMicrophonePosition)
                 return;
 
+            if (lastMicrophonePosition < 0 || lastMicrophonePosition >= microphoneClip.samples)
+            {
+                Debug.LogWarning($"Player2STT: Invalid lastMicrophonePosition {lastMicrophonePosition}, resetting to 0");
+                lastMicrophonePosition = 0;
+            }
+
+            if (currentPosition < 0 || currentPosition >= microphoneClip.samples)
+            {
+                Debug.LogWarning($"Player2STT: Invalid currentPosition {currentPosition}, skipping chunk");
+                return;
+            }
+
             int samplesToRead;
             if (currentPosition > lastMicrophonePosition)
             {
@@ -642,42 +660,78 @@ namespace player2_sdk
                 samplesToRead = (microphoneClip.samples - lastMicrophonePosition) + currentPosition;
             }
 
-            if (samplesToRead > 0)
+            if (currentPosition < lastMicrophonePosition)
+            {
+                int expectedSamples = (microphoneClip.samples - lastMicrophonePosition) + currentPosition;
+                if (samplesToRead != expectedSamples)
+                {
+                    Debug.LogWarning($"Player2STT: Sample count mismatch in wrap-around case. Expected: {expectedSamples}, Got: {samplesToRead}");
+                    samplesToRead = expectedSamples;
+                }
+            }
+
+            if (samplesToRead > 0 && samplesToRead <= microphoneClip.samples)
             {
                 float[] audioData = new float[samplesToRead];
 
-                if (currentPosition > lastMicrophonePosition)
+                try
                 {
-                    microphoneClip.GetData(audioData, lastMicrophonePosition);
-                }
-                else
-                {
-                    int firstPart = microphoneClip.samples - lastMicrophonePosition;
-                    float[] firstPartData = new float[firstPart];
-                    float[] secondPartData = new float[currentPosition];
-
-                    microphoneClip.GetData(firstPartData, lastMicrophonePosition);
-                    microphoneClip.GetData(secondPartData, 0);
-
-                    Array.Copy(firstPartData, 0, audioData, 0, firstPart);
-                    Array.Copy(secondPartData, 0, audioData, firstPart, currentPosition);
-                }
-
-                byte[] audioBytes = ConvertAudioToBytes(audioData);
-
-                if (audioBytes.Length > 0)
-                {
-                    try
+                    if (currentPosition > lastMicrophonePosition)
                     {
-                        _ = webSocket.Send(audioBytes);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Failed to send audio data: {ex.Message}");
-                    }
-                }
+                        int availableSamples = microphoneClip.samples - lastMicrophonePosition;
+                        if (samplesToRead > availableSamples)
+                        {
+                            Debug.LogWarning($"Player2STT: Attempting to read {samplesToRead} samples but only {availableSamples} available from position {lastMicrophonePosition}");
+                            samplesToRead = availableSamples;
+                            Array.Resize(ref audioData, samplesToRead);
+                        }
 
-                lastMicrophonePosition = currentPosition;
+                        microphoneClip.GetData(audioData, lastMicrophonePosition);
+                    }
+                    else
+                    {
+                        int firstPartLength = microphoneClip.samples - lastMicrophonePosition;
+                        int secondPartLength = currentPosition;
+
+                        if (firstPartLength < 0 || secondPartLength < 0 ||
+                            firstPartLength + secondPartLength != samplesToRead)
+                        {
+                            Debug.LogError($"Player2STT: Invalid wrap-around calculation. firstPart: {firstPartLength}, secondPart: {secondPartLength}, total: {samplesToRead}");
+                            return;
+                        }
+
+                        float[] firstPartData = new float[firstPartLength];
+                        float[] secondPartData = new float[secondPartLength];
+
+                        microphoneClip.GetData(firstPartData, lastMicrophonePosition);
+                        microphoneClip.GetData(secondPartData, 0);
+
+                        Array.Copy(firstPartData, 0, audioData, 0, firstPartLength);
+                        Array.Copy(secondPartData, 0, audioData, firstPartLength, secondPartLength);
+                    }
+
+                    byte[] audioBytes = ConvertAudioToBytes(audioData);
+
+                    if (audioBytes.Length > 0)
+                    {
+                        try
+                        {
+                            _ = webSocket.Send(audioBytes);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogError($"Failed to send audio data: {ex.Message}");
+                        }
+                    }
+
+                    lastMicrophonePosition = currentPosition;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Player2STT: Error processing audio chunk: {ex.Message}\nPosition: {lastMicrophonePosition}->{currentPosition}, Samples: {samplesToRead}");
+                    // Reset position on error to prevent getting stuck
+                    lastMicrophonePosition = currentPosition;
+                }
             }
 #endif
         }
