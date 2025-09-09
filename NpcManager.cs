@@ -161,18 +161,21 @@ namespace player2_sdk
                 this.apiKey = apiKey;
                 Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
                 _responseListener.newApiKey.Invoke(apiKey);
-                Debug.Log("NpcManager.NewApiKey listener: About to invoke spawnNpcs");
-                spawnNpcs.Invoke();
-                Debug.Log($"NpcManager.NewApiKey listener: spawnNpcs invoked, API key length: {apiKey?.Length ?? 0}");
-                
-                // Signal that API token is ready and all setup is complete
-                apiTokenReady.Invoke();
-                Debug.Log("NpcManager.NewApiKey listener: apiTokenReady invoked");
+                Debug.Log("NpcManager.NewApiKey listener: API key set, waiting for authentication completion");
             });
 
-
+            // Listen for when the authentication system signals it's fully ready
+            apiTokenReady.AddListener(() =>
+            {
+                Debug.Log("NpcManager.apiTokenReady listener: Authentication fully complete, spawning NPCs");
+                spawnNpcs.Invoke();
+                Debug.Log($"NpcManager.apiTokenReady listener: spawnNpcs invoked, API key length: {apiKey?.Length ?? 0}");
+            });
+            
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
         }
+
+
         private void OnValidate()
         {
             if (string.IsNullOrEmpty(clientId))
@@ -390,3 +393,4 @@ namespace player2_sdk
         public string description;
     }
 }
+

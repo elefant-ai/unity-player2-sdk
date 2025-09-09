@@ -163,6 +163,13 @@ namespace player2_sdk
         /// </summary>
         private void PlayAudioWithJavaScript(string identifier, string base64Audio, AudioSource audioSource)
         {
+            // Stop Unity AudioSource to prevent duplicate playback with JavaScript
+            if (audioSource != null)
+            {
+                audioSource.Stop();
+                audioSource.clip = null;
+            }
+            
             PlayWebGLAudio(identifier, base64Audio);
         }
 

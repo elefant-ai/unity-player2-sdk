@@ -31,7 +31,6 @@ namespace player2_sdk
         /// </summary>
         public static AuthenticationUI Setup(NpcManager npcManager)
         {
-            // Find existing instance or create new one
             if (instance == null)
             {
                 instance = FindObjectOfType<AuthenticationUI>();
@@ -39,19 +38,14 @@ namespace player2_sdk
 
             if (instance == null)
             {
-                // Create a new GameObject with AuthenticationUI component
                 GameObject authObj = new GameObject("AuthenticationUI");
                 instance = authObj.AddComponent<AuthenticationUI>();
-                
-                // Make it persist across scenes (optional)
                 DontDestroyOnLoad(authObj);
             }
 
-            // Configure the instance
             instance.npcManager = npcManager;
             instance.autoShowOnStart = true;
 
-            // Start authentication check immediately
             if (instance.gameObject.activeInHierarchy)
             {
                 instance.CheckAuthenticationStatus();
@@ -121,7 +115,6 @@ namespace player2_sdk
 
         private void Update()
         {
-            // Rotate spinner
             if (spinnerImage != null && spinnerObject != null && spinnerObject.activeInHierarchy)
             {
                 spinnerImage.transform.Rotate(0, 0, -90f * Time.deltaTime);
@@ -148,30 +141,19 @@ namespace player2_sdk
 
             try
             {
-                // For production API, skip localhost auth entirely and go straight to device flow
-                string baseUrl = npcManager.GetBaseUrl();
-                Debug.Log($"CheckAuthenticationStatus: Base URL is '{baseUrl}'");
-                
-                bool hasToken = false;
-                if (baseUrl.Contains("localhost"))
-                {
-                    Debug.Log("CheckAuthenticationStatus: Using localhost authentication");
-                    hasToken = await TryImmediateWebLogin();
-                }
-                else
-                {
-                    Debug.Log("CheckAuthenticationStatus: Skipping localhost auth for production API, going to device flow");
-                }
+                Debug.Log("CheckAuthenticationStatus: Attempting localhost authentication first");
+                bool hasToken = await TryImmediateWebLogin();
                 
                 if (hasToken)
                 {
                     SetState(AuthenticationState.Success);
-                    await WaitForApiTokenReady();
                     HideOverlay();
+                    npcManager.apiTokenReady.Invoke();
                     authenticationCompleted.Invoke();
                 }
                 else
                 {
+                    Debug.Log("CheckAuthenticationStatus: Localhost auth failed, starting device flow");
                     SetState(AuthenticationState.RequiresAuth);
                     await StartDeviceFlow();
                 }
@@ -184,24 +166,22 @@ namespace player2_sdk
 
         private void CreateUI()
         {
-            if (overlayCanvas != null) return; // Already created
+            if (overlayCanvas != null) return;
 
-            // Create overlay canvas
             GameObject canvasObj = new GameObject("AuthOverlay");
             canvasObj.transform.SetParent(transform);
-            
+
             overlayCanvas = canvasObj.AddComponent<Canvas>();
             overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
             overlayCanvas.sortingOrder = 1000;
-            
+
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
-            
+
             canvasObj.AddComponent<GraphicRaycaster>();
 
-            // Create background
             GameObject background = new GameObject("Background");
             background.transform.SetParent(canvasObj.transform);
             
@@ -214,88 +194,87 @@ namespace player2_sdk
             Image bgImage = background.AddComponent<Image>();
             bgImage.color = new Color(0.1f, 0.12f, 0.16f, 0.95f); // Dark background like screenshot
 
-            // Create main panel
             authPanel = new GameObject("AuthPanel");
             authPanel.transform.SetParent(canvasObj.transform);
-            
+
             RectTransform panelRect = authPanel.AddComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(700, 550);
+            panelRect.sizeDelta = new Vector2(800, 400);
             panelRect.anchoredPosition = Vector2.zero;
-            
+
             Image panelBg = authPanel.AddComponent<Image>();
-            panelBg.color = new Color(0.15f, 0.17f, 0.22f, 1f); // Panel background
-            
-            // Add subtle border
+            panelBg.color = new Color(0.12f, 0.14f, 0.18f, 0.98f);
+
             Outline panelOutline = authPanel.AddComponent<Outline>();
-            panelOutline.effectColor = new Color(0.3f, 0.35f, 0.45f, 0.8f);
+            panelOutline.effectColor = new Color(0.4f, 0.7f, 1f, 1f);
             panelOutline.effectDistance = new Vector2(2, -2);
+            panelOutline.useGraphicAlpha = false;
 
             CreateUIElements();
         }
 
         private void CreateUIElements()
         {
-            // Title with brain emoji
             GameObject titleObj = new GameObject("Title");
             titleObj.transform.SetParent(authPanel.transform);
-            
+
             RectTransform titleRect = titleObj.AddComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0.5f, 1f);
-            titleRect.anchorMax = new Vector2(0.5f, 1f);
-            titleRect.pivot = new Vector2(0.5f, 1f);
-            titleRect.sizeDelta = new Vector2(500, 60);
-            titleRect.anchoredPosition = new Vector2(0, -40);
-            
+            titleRect.anchorMin = new Vector2(0.35f, 0.7f);
+            titleRect.anchorMax = new Vector2(0.95f, 0.85f);
+            titleRect.offsetMin = Vector2.zero;
+            titleRect.offsetMax = Vector2.zero;
+
             titleText = titleObj.AddComponent<TextMeshProUGUI>();
             titleText.text = "Player2 AI Required";
-            titleText.fontSize = 36;
-            titleText.color = new Color(0.4f, 0.7f, 1f, 1f); // Blue like screenshot
-            titleText.alignment = TextAlignmentOptions.Center;
+            titleText.fontSize = 42f;
+            titleText.enableAutoSizing = false;
+            titleText.extraPadding = true;
+            titleText.color = new Color(0.9f, 0.95f, 1f, 1f);
+            titleText.alignment = TextAlignmentOptions.Left;
             titleText.fontStyle = FontStyles.Bold;
 
-            // Status text (checking authentication...)
             GameObject statusObj = new GameObject("StatusText");
             statusObj.transform.SetParent(authPanel.transform);
-            
+
             RectTransform statusRect = statusObj.AddComponent<RectTransform>();
-            statusRect.anchorMin = new Vector2(0.1f, 0.7f);
-            statusRect.anchorMax = new Vector2(0.9f, 0.8f);
+            statusRect.anchorMin = new Vector2(0.35f, 0.6f);
+            statusRect.anchorMax = new Vector2(0.95f, 0.68f);
             statusRect.offsetMin = Vector2.zero;
             statusRect.offsetMax = Vector2.zero;
-            
-            statusText = statusObj.AddComponent<TextMeshProUGUI>();
-            statusText.text = "Checking authentication...";
-            statusText.fontSize = 20;
-            statusText.color = new Color(1f, 0.8f, 0.4f, 1f); // Orange like screenshot
-            statusText.alignment = TextAlignmentOptions.Left;
 
-            // Description text
+            statusText = statusObj.AddComponent<TextMeshProUGUI>();
+            statusText.text = "Authentication Required";
+            statusText.fontSize = 24f;
+            statusText.enableAutoSizing = false;
+            statusText.extraPadding = true;
+            statusText.color = new Color(1f, 0.85f, 0.4f, 1f);
+            statusText.alignment = TextAlignmentOptions.Left;
+            statusText.fontStyle = FontStyles.Normal;
+
             GameObject descObj = new GameObject("Description");
             descObj.transform.SetParent(authPanel.transform);
-            
+
             RectTransform descRect = descObj.AddComponent<RectTransform>();
-            descRect.anchorMin = new Vector2(0.1f, 0.5f);
-            descRect.anchorMax = new Vector2(0.9f, 0.65f);
+            descRect.anchorMin = new Vector2(0.35f, 0.3f);
+            descRect.anchorMax = new Vector2(0.95f, 0.55f);
             descRect.offsetMin = Vector2.zero;
             descRect.offsetMax = Vector2.zero;
-            
+
             descriptionText = descObj.AddComponent<TextMeshProUGUI>();
             descriptionText.text = "This game uses Player2's AI system to power in-game conversations with NPCs and generate hilarious live chat reactions. Without it, the core gameplay won't work.";
-            descriptionText.fontSize = 18;
-            descriptionText.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+            descriptionText.fontSize = 18f;
+            descriptionText.enableAutoSizing = false;
+            descriptionText.extraPadding = true;
+            descriptionText.color = new Color(0.85f, 0.9f, 0.95f, 1f);
             descriptionText.alignment = TextAlignmentOptions.Left;
             descriptionText.enableWordWrapping = true;
+            descriptionText.fontStyle = FontStyles.Normal;
+            descriptionText.lineSpacing = 1.3f;
 
-            // Create example image
             CreateExampleImage();
-
-            // Create spinner (initially hidden)
             CreateSpinner();
-
-            // Create buttons
             CreateButtons();
         }
 
@@ -304,18 +283,17 @@ namespace player2_sdk
             spinnerObject = new GameObject("Spinner");
             spinnerObject.transform.SetParent(authPanel.transform);
             spinnerObject.SetActive(false);
-            
+
             RectTransform spinnerRect = spinnerObject.AddComponent<RectTransform>();
             spinnerRect.anchorMin = new Vector2(0.5f, 0.5f);
             spinnerRect.anchorMax = new Vector2(0.5f, 0.5f);
             spinnerRect.pivot = new Vector2(0.5f, 0.5f);
             spinnerRect.sizeDelta = new Vector2(80, 80);
             spinnerRect.anchoredPosition = Vector2.zero;
-            
+
             spinnerImage = spinnerObject.AddComponent<Image>();
             spinnerImage.color = new Color(1f, 0.8f, 0.4f, 1f);
-            
-            // Create simple spinner texture
+
             CreateSpinnerTexture();
         }
 
@@ -324,17 +302,16 @@ namespace player2_sdk
             Texture2D spinnerTex = new Texture2D(64, 64);
             Color[] pixels = new Color[64 * 64];
             Vector2 center = new Vector2(32, 32);
-            
+
             for (int y = 0; y < 64; y++)
             {
                 for (int x = 0; x < 64; x++)
                 {
                     float distance = Vector2.Distance(new Vector2(x, y), center);
                     float angle = Mathf.Atan2(y - 32, x - 32) * Mathf.Rad2Deg;
-                    
+
                     if (distance <= 28 && distance >= 18)
                     {
-                        // Create partial circle (loading spinner effect)
                         float normalizedAngle = (angle + 180) / 360f;
                         float alpha = Mathf.Clamp01(1f - normalizedAngle * 1.5f);
                         if (alpha > 0.1f)
@@ -352,121 +329,133 @@ namespace player2_sdk
                     }
                 }
             }
-            
+
             spinnerTex.SetPixels(pixels);
             spinnerTex.Apply();
-            
+
             Sprite spinnerSprite = Sprite.Create(spinnerTex, new Rect(0, 0, 64, 64), new Vector2(0.5f, 0.5f));
             spinnerImage.sprite = spinnerSprite;
         }
 
         private void CreateExampleImage()
         {
-            GameObject imageObj = new GameObject("ExampleImage");
+            GameObject imageObj = new GameObject("Player2Logo");
             imageObj.transform.SetParent(authPanel.transform);
-            
+
             RectTransform imageRect = imageObj.AddComponent<RectTransform>();
-            imageRect.anchorMin = new Vector2(0.1f, 0.25f);
-            imageRect.anchorMax = new Vector2(0.9f, 0.45f);
-            imageRect.offsetMin = Vector2.zero;
-            imageRect.offsetMax = Vector2.zero;
-            
+            imageRect.anchorMin = new Vector2(0.08f, 0.55f);
+            imageRect.anchorMax = new Vector2(0.08f, 0.55f);
+            imageRect.pivot = new Vector2(0.5f, 0.5f);
+            imageRect.sizeDelta = new Vector2(160, 160);
+            imageRect.anchoredPosition = new Vector2(80, 0);
+
             exampleImage = imageObj.AddComponent<Image>();
-            
-            // Load the app-request.png image
-            LoadExampleImage();
+            LoadPlayer2Logo();
         }
 
-        private void LoadExampleImage()
+        private void LoadPlayer2Logo()
         {
-            // Try to load the image from Resources or create a placeholder
-            Texture2D imageTexture = Resources.Load<Texture2D>("app-request");
-            
-            if (imageTexture == null)
+            StartCoroutine(LoadImageFromUrl("https://assets.elefant.gg/player2.png"));
+        }
+        
+        private System.Collections.IEnumerator LoadImageFromUrl(string url)
+        {
+            using (UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequestTexture.GetTexture(url))
             {
-                // Create a placeholder image if app-request.png is not found in Resources
-                imageTexture = CreatePlaceholderImage();
-            }
-            
-            if (imageTexture != null)
-            {
-                Sprite imageSprite = Sprite.Create(imageTexture, new Rect(0, 0, imageTexture.width, imageTexture.height), new Vector2(0.5f, 0.5f));
-                exampleImage.sprite = imageSprite;
-                exampleImage.preserveAspect = true;
+                yield return www.SendWebRequest();
+                
+                if (www.result == UnityEngine.Networking.UnityWebRequest.Result.Success)
+                {
+                    Texture2D logoTexture = UnityEngine.Networking.DownloadHandlerTexture.GetContent(www);
+                    if (logoTexture != null)
+                    {
+                        Sprite logoSprite = Sprite.Create(logoTexture, new Rect(0, 0, logoTexture.width, logoTexture.height), new Vector2(0.5f, 0.5f));
+                        exampleImage.sprite = logoSprite;
+                        exampleImage.preserveAspect = true;
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"Failed to load Player2 logo from URL: {www.error}");
+                    CreateFallbackLogo();
+                }
             }
         }
 
-        private Texture2D CreatePlaceholderImage()
+        private void CreateFallbackLogo()
         {
-            // Create a simple placeholder image showing browser icon
-            Texture2D placeholderTex = new Texture2D(400, 200);
-            Color[] pixels = new Color[400 * 200];
-            
-            // Fill with dark background
-            Color bgColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            Texture2D fallbackTex = new Texture2D(150, 150);
+            Color[] pixels = new Color[150 * 150];
+
+            Color bgColor = new Color(0.4f, 0.7f, 1f, 1f);
             for (int i = 0; i < pixels.Length; i++)
             {
                 pixels[i] = bgColor;
             }
-            
-            // Add simple browser-like rectangle
-            Color browserColor = new Color(0.4f, 0.4f, 0.4f, 1f);
-            for (int y = 50; y < 150; y++)
+
+            Color textColor = Color.white;
+            for (int y = 60; y < 90; y++)
             {
-                for (int x = 50; x < 350; x++)
+                for (int x = 50; x < 100; x++)
                 {
-                    if (x == 50 || x == 349 || y == 50 || y == 149)
+                    if ((x >= 55 && x <= 60) ||
+                        (y >= 60 && y <= 65 && x >= 55 && x <= 70) ||
+                        (y >= 72 && y <= 77 && x >= 55 && x <= 70) ||
+                        (x >= 70 && x <= 75 && y >= 60 && y <= 77) ||
+                        (x >= 80 && x <= 95 && y >= 60 && y <= 65) ||
+                        (x >= 90 && x <= 95 && y >= 60 && y <= 72) ||
+                        (x >= 80 && x <= 95 && y >= 72 && y <= 77) ||
+                        (x >= 80 && x <= 85 && y >= 77 && y <= 90) ||
+                        (x >= 80 && x <= 95 && y >= 85 && y <= 90))
                     {
-                        pixels[y * 400 + x] = Color.white;
-                    }
-                    else
-                    {
-                        pixels[y * 400 + x] = browserColor;
+                        pixels[y * 150 + x] = textColor;
                     }
                 }
             }
-            
-            placeholderTex.SetPixels(pixels);
-            placeholderTex.Apply();
-            return placeholderTex;
+
+            fallbackTex.SetPixels(pixels);
+            fallbackTex.Apply();
+
+            Sprite fallbackSprite = Sprite.Create(fallbackTex, new Rect(0, 0, 150, 150), new Vector2(0.5f, 0.5f));
+            exampleImage.sprite = fallbackSprite;
+            exampleImage.preserveAspect = true;
         }
 
         private void CreateButtons()
         {
-            // Approve button (centered)
             GameObject approveObj = new GameObject("ApproveButton");
             approveObj.transform.SetParent(authPanel.transform);
-            
+
             RectTransform approveRect = approveObj.AddComponent<RectTransform>();
             approveRect.anchorMin = new Vector2(0.3f, 0.08f);
-            approveRect.anchorMax = new Vector2(0.7f, 0.18f);
+            approveRect.anchorMax = new Vector2(0.7f, 0.22f);
             approveRect.offsetMin = Vector2.zero;
             approveRect.offsetMax = Vector2.zero;
-            
+
             approveButton = approveObj.AddComponent<Button>();
             Image approveBg = approveObj.AddComponent<Image>();
-            approveBg.color = new Color(0.3f, 0.7f, 0.3f, 1f);
-            
+            approveBg.color = new Color(0.2f, 0.65f, 0.2f, 1f);
+
             GameObject approveTextObj = new GameObject("Text");
             approveTextObj.transform.SetParent(approveObj.transform);
-            
+
             RectTransform approveTextRect = approveTextObj.AddComponent<RectTransform>();
             approveTextRect.anchorMin = Vector2.zero;
             approveTextRect.anchorMax = Vector2.one;
             approveTextRect.offsetMin = Vector2.zero;
             approveTextRect.offsetMax = Vector2.zero;
-            
+
             TextMeshProUGUI approveText = approveTextObj.AddComponent<TextMeshProUGUI>();
             approveText.text = "Approve";
-            approveText.fontSize = 18;
-            approveText.color = Color.white;
+            approveText.fontSize = 24f;
+            approveText.enableAutoSizing = false;
+            approveText.extraPadding = true;
+            approveText.color = new Color(0.95f, 1f, 0.95f, 1f);
             approveText.alignment = TextAlignmentOptions.Center;
             approveText.fontStyle = FontStyles.Bold;
-            
+
             approveButton.targetGraphic = approveBg;
             approveButton.onClick.AddListener(OnApproveClicked);
-
-            // Initially hide button
             approveButton.gameObject.SetActive(false);
         }
 
@@ -496,13 +485,12 @@ namespace player2_sdk
 
             try
             {
-                // Wait for the token to be ready with a reasonable timeout
-                float timeout = 5f; // 5 seconds timeout
+                float timeout = 5f;
                 float elapsed = 0f;
 
                 while (!tokenReady && elapsed < timeout)
                 {
-                    await Task.Delay(50); // Check every 50ms
+                    await Task.Delay(50);
                     elapsed += 0.05f;
                 }
 
@@ -517,25 +505,14 @@ namespace player2_sdk
             }
             finally
             {
-                // Clean up the listener
                 npcManager.apiTokenReady.RemoveListener(OnTokenReady);
             }
         }
 
         private async Task<bool> TryImmediateWebLogin()
         {
-            // Only try localhost authentication if the API base URL is also localhost
-            string baseUrl = npcManager.GetBaseUrl();
-            Debug.Log($"TryImmediateWebLogin: Checking base URL: '{baseUrl}' - Contains localhost: {baseUrl.Contains("localhost")}");
-            if (!baseUrl.Contains("localhost"))
-            {
-                Debug.Log($"TryImmediateWebLogin: Skipping localhost auth because API base URL is: {baseUrl}");
-                return false;
-            }
-            
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
             Debug.Log($"TryImmediateWebLogin: Attempting localhost auth at: {url}");
-            Debug.Log($"TryImmediateWebLogin: API base URL is: {baseUrl}");
             
             using var request = UnityWebRequest.PostWwwForm(url, string.Empty);
             request.SetRequestHeader("Accept", "application/json");
@@ -553,7 +530,6 @@ namespace player2_sdk
                         {
                             Debug.Log($"TryImmediateWebLogin: Got API key, length: {resp.p2Key.Length}");
                             npcManager.NewApiKey.Invoke(resp.p2Key);
-                            Debug.Log("TryImmediateWebLogin: NewApiKey.Invoke completed");
                             return true;
                         }
                     }
@@ -562,6 +538,10 @@ namespace player2_sdk
                         Debug.LogWarning($"Failed to parse immediate web login response: {ex.Message}");
                     }
                 }
+            }
+            else
+            {
+                Debug.Log($"TryImmediateWebLogin: Failed to connect to Player2 App: {request.error}");
             }
             return false;
         }
@@ -578,8 +558,6 @@ namespace player2_sdk
             {
                 currentAuthFlow = await InitiateAuthFlow();
                 SetState(AuthenticationState.RequiresAuth);
-                
-                // Start polling in background
                 _ = PollForToken(currentAuthFlow);
             }
             catch (Exception e)
@@ -650,8 +628,8 @@ namespace player2_sdk
                         {
                             npcManager.NewApiKey.Invoke(response.p2Key);
                             SetState(AuthenticationState.Success);
-                            await WaitForApiTokenReady();
                             HideOverlay();
+                            npcManager.apiTokenReady.Invoke();
                             authenticationCompleted.Invoke();
                             isAuthenticating = false;
                             return;

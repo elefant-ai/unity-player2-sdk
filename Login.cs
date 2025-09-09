@@ -255,14 +255,6 @@ namespace player2_sdk
 
     private async Awaitable<bool> TryImmediateWebLogin()
         {
-            // Only try localhost authentication if the API base URL is also localhost
-            string baseUrl = npcManager.GetBaseUrl();
-            if (!baseUrl.Contains("localhost"))
-            {
-                Debug.Log($"Login.TryImmediateWebLogin: Skipping localhost auth because API base URL is: {baseUrl}");
-                return false;
-            }
-
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
             using var request = UnityWebRequest.Post(url, string.Empty);
             request.SetRequestHeader("Accept", "application/json");
@@ -292,8 +284,7 @@ namespace player2_sdk
             }
             else
             {
-                // Non-success is not fatal; just proceed to device flow
-                Debug.Log($"Immediate web login not available: {request.responseCode} {request.error}");
+                Debug.Log($"TryImmediateWebLogin: Failed to connect to Player2 App: {request.responseCode} {request.error}");
             }
             return false;
         }

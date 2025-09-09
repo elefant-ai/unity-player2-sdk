@@ -152,7 +152,7 @@ public class GameManager : MonoBehaviour
 4. Done! Authentication UI appears automatically
 
 #### What Happens Automatically
-✅ **Smart Authentication Flow**: Tries localhost first, falls back to device flow  
+✅ **Smart Authentication Flow**: Automatically tries Player2 App first, falls back to browser  
 ✅ **Professional UI**: Complete overlay with Player2 branding and clear instructions  
 ✅ **User Guidance**: Shows progress, user codes, and browser links  
 ✅ **Error Handling**: Retry functionality and helpful error messages  
@@ -160,10 +160,10 @@ public class GameManager : MonoBehaviour
 
 #### Authentication Flow
 1. **Automatic Check**: UI appears only when authentication is needed
-2. **Localhost Priority**: Instant authentication if Player2 desktop app is running
-3. **Device Flow Fallback**: Professional overlay guides users through web authentication
-4. **Browser Integration**: One-click browser opening with pre-filled authentication
-5. **Real-time Updates**: Progress indicators and status messages throughout the process
+2. **Player2 App Priority**: Instant authentication if Player2 App is running locally
+3. **Browser Fallback**: Professional overlay guides users through web authentication
+4. **One-Click Setup**: Seamless browser opening with pre-filled authentication codes
+
 
 #### Advanced Usage (Optional)
 ```csharp
