@@ -30,7 +30,8 @@
 - **`NpcManager.cs`** - Main NPC management and API communication
 - **`Player2Npc.cs`** - Individual NPC behavior and chat handling
 - **`Player2NpcResponseListener.cs`** - WebSocket response processing
-- **`Login.cs`** - OAuth authentication flow
+- **`AuthenticationUI.cs`** - Drop-in authentication UI with professional overlay
+- **`SimpleAuthExample.cs`** - Simple component for one-line authentication setup
 
 ### Speech-to-Text (STT)
 - **`Player2STT.cs`** - Real-time speech-to-text functionality
@@ -116,22 +117,79 @@ The quickest way to experiment with unity-player2-sdk is to:
      - **TTS**: Enable if you want text-to-speech for NPCs
      - **Functions**: Define any custom functions your NPCs can call (optional)
 
-3. **Create Login System**
-   - Add the `Login` component to a GameObject in your scene
-   - In the Login component, drag your NpcManager into the `Npc Manager` field
-   - Create a UI Button in your scene
-   - In the button's `OnClick()` event, add the Login GameObject and select `Login.OpenURL()`
+3. **Add Authentication UI**
+   - **Option 1 (Recommended)**: Add one line to any script:
+     ```csharp
+     AuthenticationUI.Setup(npcManager);
+     ```
+   - **Option 2**: Add `SimpleAuthExample` component to any GameObject and assign your NpcManager
+   - The authentication UI will automatically appear when needed with professional styling
 
 ### Authentication Setup
 
-The SDK uses OAuth device flow for secure authentication:
+The SDK provides a drop-in authentication UI that handles the complete OAuth device flow:
 
-1. When a user clicks the login button, a browser window opens
-2. The user authorizes your application on the Player2 website
-3. The SDK automatically receives and stores the API key
-4. NPCs become active and ready to chat
+#### Quick Setup (One Line)
+```csharp
+using player2_sdk;
 
-**Note**: Users must authenticate each time they start your application. The API key is obtained dynamically and not stored permanently.
+public class GameManager : MonoBehaviour 
+{
+    public NpcManager npcManager;
+    
+    void Start() 
+    {
+        // That's it! Professional auth UI appears automatically when needed
+        AuthenticationUI.Setup(npcManager);
+    }
+}
+```
+
+#### Component-Based Setup
+1. Add `SimpleAuthExample` component to any GameObject in your scene
+2. Drag your `NpcManager` to the **Npc Manager** field
+3. Optionally assign GameObjects to **Game Objects To Show After Auth** array
+4. Done! Authentication UI appears automatically
+
+#### What Happens Automatically
+✅ **Smart Authentication Flow**: Tries localhost first, falls back to device flow  
+✅ **Professional UI**: Complete overlay with Player2 branding and clear instructions  
+✅ **User Guidance**: Shows progress, user codes, and browser links  
+✅ **Error Handling**: Retry functionality and helpful error messages  
+✅ **Cross-Scene Persistence**: Authentication state maintained across scene loads  
+
+#### Authentication Flow
+1. **Automatic Check**: UI appears only when authentication is needed
+2. **Localhost Priority**: Instant authentication if Player2 desktop app is running
+3. **Device Flow Fallback**: Professional overlay guides users through web authentication
+4. **Browser Integration**: One-click browser opening with pre-filled authentication
+5. **Real-time Updates**: Progress indicators and status messages throughout the process
+
+#### Advanced Usage (Optional)
+```csharp
+// Get authentication events if needed
+var authUI = AuthenticationUI.Setup(npcManager);
+authUI.authenticationCompleted.AddListener(() => {
+    Debug.Log("Player authenticated! Enable game features.");
+    ShowGameContent();
+});
+
+authUI.authenticationFailed.AddListener((error) => {
+    Debug.LogError($"Auth failed: {error}");
+    ShowOfflineMode();
+});
+
+// Check authentication status
+if (AuthenticationUI.Instance != null && AuthenticationUI.Instance.IsAuthenticated()) 
+{
+    // Player is authenticated
+}
+
+// Force show authentication UI (for logout/re-login)
+AuthenticationUI.Instance?.ForceShowAuthUI();
+```
+
+**Note**: The authentication UI is completely self-contained and requires no scene setup. It automatically creates all necessary UI elements with professional styling that matches modern authentication flows.
 
 ---
 

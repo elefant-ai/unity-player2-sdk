@@ -12,7 +12,7 @@ namespace player2_sdk
     using UnityEngine.Events;
 
     [Serializable]
-    class InitiateAuthFlow
+    public class InitiateAuthFlow
     {
         public string ClientId;
 
@@ -26,7 +26,7 @@ namespace player2_sdk
 
 
     [Serializable]
-    class InitiateAuthFlowResponse
+    public class InitiateAuthFlowResponse
     {
         public string deviceCode;
         public string userCode;
@@ -37,7 +37,7 @@ namespace player2_sdk
     }
 
     [Serializable]
-    class TokenRequest
+    public class TokenRequest
     {
         public string clientId;
         public string deviceCode;
@@ -51,7 +51,7 @@ namespace player2_sdk
     }
 
     [Serializable]
-    class TokenResponse
+    public class TokenResponse
     {
         public string p2Key;
     }

@@ -464,7 +464,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clientId: 01977e1d-cf15-7d58-a6e2-ef47fc3d9f30
-  TTS: 0
+  TTS: 1
   keep_game_state: 0
   functions: []
   functionHandler:
@@ -577,7 +577,6 @@ GameObject:
   - component: {fileID: 381491148}
   - component: {fileID: 381491151}
   - component: {fileID: 381491150}
-  - component: {fileID: 381491149}
   m_Layer: 5
   m_Name: Connection Status
   m_TagString: Untagged
@@ -604,18 +603,6 @@ RectTransform:
   m_AnchoredPosition: {x: 272.5, y: 222.7}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &381491149
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 381491147}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7350ff142f27a5b55a534718659f1131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ExampleConnectionScript
 --- !u!114 &381491150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1181,7 +1168,7 @@ GameObject:
   - component: {fileID: 571398747}
   - component: {fileID: 571398746}
   m_Layer: 5
-  m_Name: Login Button
+  m_Name: Authenticate Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1216,26 +1203,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 571398744}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3c36b828c4f8cb21bc7dc104e3e139b, type: 3}
+  m_Script: {fileID: 11500000, guid: e5f6789012345678901234abcdef0123, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.Login
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleAuthExample
   npcManager: {fileID: 321986438}
-  authenticationFinished:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 381491149}
-        m_TargetAssemblyTypeName: ExampleConnectionScript, Assembly-CSharp
-        m_MethodName: Connected
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  loginButton: {fileID: 571398744}
+  gameObjectsToShowAfterAuth:
+  - {fileID: 381491149}
 --- !u!114 &571398747
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1279,19 +1252,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 571398748}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 571398746}
-        m_TargetAssemblyTypeName: player2_sdk.Login, Assembly-CSharp
-        m_MethodName: OpenURL
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &571398748
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2498,7 +2459,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Login
+  m_text: Authenticate
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -2934,8 +2895,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.Player2STT
   sttEnabled: 1
-  leftoverReceiveWaitTime: 0.5
-  releaseMaxWaitTime: 1.5
   heartbeatInterval: 5
   enableVAD: 0
   enableInterimResults: 0
