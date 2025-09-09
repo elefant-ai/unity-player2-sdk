@@ -4,6 +4,7 @@ namespace player2_sdk
 
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text;
     using JetBrains.Annotations;
     using Newtonsoft.Json;
@@ -86,6 +87,9 @@ namespace player2_sdk
         // Buffer protection
         private const int MAX_EVENT_SIZE = 2 * 1024 * 1024; // 2MB max per event
         private const float CONNECTION_TIMEOUT = 300.0f; // 5 minutes - server should send pings every 15 seconds
+        
+        // Payload logging
+        private static string _tempDirectory = null;
 
         private Dictionary<string, UnityEvent<NpcApiChatResponse>> _responseEvents =
             new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
@@ -469,11 +473,15 @@ namespace player2_sdk
                     lastProcessedLength = downloadHandler.text.Length;
                     lastDataTime = Time.time; // Reset timeout - any data including pings keeps connection alive
 
-                    // Avoid logging entire buffer each time (can get very large). Log a preview instead.
-                    if (Debug.isDebugBuild)
+                    // Write received data to timestamped file instead of logging truncated preview
+                    if (Debug.isDebugBuild && newData.Length > 200)
                     {
-                        var preview = newData.Length > 200 ? newData.Substring(0, 200) + "..." : newData;
-                        Debug.Log($"Received {newData.Length} new chars (total {lastProcessedLength}). Preview: {preview}");
+                        string fileName = WritePayloadToFile(newData, "received_data");
+                        Debug.Log($"Received {newData.Length} new chars (total {lastProcessedLength}). Data written to: {fileName}");
+                    }
+                    else if (Debug.isDebugBuild)
+                    {
+                        Debug.Log($"Received {newData.Length} new chars (total {lastProcessedLength}). Data: {newData}");
                     }
 
                     ProcessNewData(newData, lineBuffer);
@@ -663,8 +671,9 @@ namespace player2_sdk
                         return;
                     }
 
-                    // Log the complete JSON payload for troubleshooting
-                    Debug.Log($"NPC Message JSON Payload (Event-Id: {_currentEventId}): {dataString}");
+                    // Write the complete JSON payload to file instead of logging
+                    string payloadFileName = WritePayloadToFile(dataString, "npc_message_payload");
+                    Debug.Log($"NPC Message JSON Payload (Event-Id: {_currentEventId}) written to: {payloadFileName}");
 
                     NpcApiChatResponse response =
                         JsonConvert.DeserializeObject<NpcApiChatResponse>(dataString, JsonSerializerSettings ?? new JsonSerializerSettings());
@@ -694,13 +703,15 @@ namespace player2_sdk
                     }
                     else
                     {
-                        Debug.LogWarning($"Received SSE event with invalid or missing npc_id: {dataString.Substring(0, Math.Min(100, dataString.Length))}...");
+                        string invalidDataFileName = WritePayloadToFile(dataString, "invalid_npc_event");
+                        Debug.LogWarning($"Received SSE event with invalid or missing npc_id. Data written to: {invalidDataFileName}");
                     }
                 }
             }
             catch (JsonException jsonEx)
             {
-                Debug.LogError($"JSON parsing error in SSE event: {jsonEx.Message}. Data: {_currentEventData.ToString().Substring(0, Math.Min(200, _currentEventData.Length))}...");
+                string errorDataFileName = WritePayloadToFile(_currentEventData.ToString(), "json_parse_error");
+                Debug.LogError($"JSON parsing error in SSE event: {jsonEx.Message}. Data written to: {errorDataFileName}");
             }
             catch (Exception e)
             {
@@ -719,6 +730,49 @@ namespace player2_sdk
             if (_currentEventData != null)
             {
                 _currentEventData.Clear();
+            }
+        }
+
+        private static string GetTempDirectory()
+        {
+            if (_tempDirectory == null)
+            {
+                _tempDirectory = "/tmp/Player2SDK_Payloads";
+                
+                try
+                {
+                    if (!Directory.Exists(_tempDirectory))
+                    {
+                        Directory.CreateDirectory(_tempDirectory);
+                        Debug.Log($"Created payload temp directory: {_tempDirectory}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to create temp directory: {ex.Message}");
+                    _tempDirectory = "/tmp"; // Fallback to /tmp
+                }
+            }
+            
+            return _tempDirectory;
+        }
+
+        private static string WritePayloadToFile(string data, string prefix)
+        {
+            try
+            {
+                string tempDir = GetTempDirectory();
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
+                string fileName = $"{prefix}_{timestamp}.json";
+                string filePath = Path.Combine(tempDir, fileName);
+                
+                File.WriteAllText(filePath, data, new UTF8Encoding(false));
+                return fileName; // Return just the filename for cleaner logging
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to write payload to file: {ex.Message}");
+                return $"<failed_to_write_file: {ex.Message}>";
             }
         }
 

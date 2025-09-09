@@ -157,14 +157,17 @@ namespace player2_sdk
 
             NewApiKey.AddListener((apiKey) =>
             {
-                Debug.Log($"New API Key received: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"}");
+                Debug.Log($"NpcManager.NewApiKey listener: Received API key: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"} (Length: {apiKey?.Length ?? 0})");
                 this.apiKey = apiKey;
+                Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
                 _responseListener.newApiKey.Invoke(apiKey);
+                Debug.Log("NpcManager.NewApiKey listener: About to invoke spawnNpcs");
                 spawnNpcs.Invoke();
-                Debug.Log($"NpcManager: API key set successfully. Length: {apiKey?.Length ?? 0}");
+                Debug.Log($"NpcManager.NewApiKey listener: spawnNpcs invoked, API key length: {apiKey?.Length ?? 0}");
                 
                 // Signal that API token is ready and all setup is complete
                 apiTokenReady.Invoke();
+                Debug.Log("NpcManager.NewApiKey listener: apiTokenReady invoked");
             });
 
 

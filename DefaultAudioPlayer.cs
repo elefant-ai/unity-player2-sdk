@@ -46,15 +46,6 @@ namespace player2_sdk
                 yield break;
             }
 
-            // Clean the Base64 string by removing invalid prefix characters like //
-            base64String = CleanBase64String(base64String);
-
-            // Validate that we still have base64 data after cleaning
-            if (string.IsNullOrEmpty(base64String))
-            {
-                Debug.LogError($"Cannot play audio for {identifier}: no valid base64 data found after cleaning");
-                yield break;
-            }
 
             // Additional validation: check for valid base64 characters
             if (!IsValidBase64String(base64String))
@@ -66,8 +57,11 @@ namespace player2_sdk
             byte[] audioBytes;
             try
             {
+                // Fix Base64 padding if needed
+                string paddedBase64 = FixBase64Padding(base64String);
+                
                 // Decode to bytes
-                audioBytes = Convert.FromBase64String(base64String);
+                audioBytes = Convert.FromBase64String(paddedBase64);
             }
             catch (FormatException ex)
             {
@@ -140,24 +134,20 @@ namespace player2_sdk
         }
 
         /// <summary>
-        /// Cleans Base64 string by removing leading / characters - preserves other characters for troubleshooting
+        /// Fixes Base64 padding by adding missing = characters if needed
         /// </summary>
-        private string CleanBase64String(string base64String)
+        private string FixBase64Padding(string base64String)
         {
             if (string.IsNullOrEmpty(base64String))
                 return base64String;
 
-            // Remove any leading / characters - leave everything else intact for troubleshooting
-            int slashCount = 0;
-            while (slashCount < base64String.Length && base64String[slashCount] == '/')
+            // Base64 strings must be divisible by 4
+            int missingPadding = 4 - (base64String.Length % 4);
+            
+            if (missingPadding != 4) // Only add padding if needed
             {
-                slashCount++;
-            }
-
-            if (slashCount > 0)
-            {
-                Debug.Log($"Cleaned Base64 string by removing {slashCount} leading / character(s)");
-                return base64String.Substring(slashCount);
+                base64String = base64String + new string('=', missingPadding);
+                Debug.Log($"Fixed Base64 padding by adding {missingPadding} character(s)");
             }
 
             return base64String;

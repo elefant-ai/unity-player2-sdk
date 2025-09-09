@@ -128,7 +128,7 @@ namespace player2_sdk
                 return;
             }
 
-            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}...");
+            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Full length: {npcManager.apiKey.Length})");
 
             var spawnData = new SpawnNpc
             {
@@ -155,6 +155,7 @@ namespace player2_sdk
             using var request = new UnityWebRequest(url, "POST");
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
+            Debug.Log($"Setting Authorization header with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Length: {npcManager.apiKey.Length})");
             request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Accept", "application/json");
