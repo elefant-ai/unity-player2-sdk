@@ -47,6 +47,16 @@ namespace player2_sdk
                 yield break;
             }
 
+            // Clean the Base64 string by removing invalid prefix characters like //
+            base64String = CleanBase64String(base64String);
+
+            // Validate that we still have base64 data after cleaning
+            if (string.IsNullOrEmpty(base64String))
+            {
+                Debug.LogError($"Cannot play audio for {identifier}: no valid base64 data found after cleaning");
+                yield break;
+            }
+
             // Additional validation: check for valid base64 characters
             if (!IsValidBase64String(base64String))
             {
@@ -62,7 +72,9 @@ namespace player2_sdk
             }
             catch (FormatException ex)
             {
-                Debug.LogError($"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}");
+                // Log additional context for Base64 decoding failures
+                string base64Preview = base64String.Length > 50 ? base64String.Substring(0, 50) + "..." : base64String;
+                Debug.LogError($"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}. Base64 data length: {base64String.Length}, Preview: {base64Preview}");
                 yield break;
             }
 
@@ -172,6 +184,30 @@ namespace player2_sdk
                 floats[i] = sample / 32768f; // Convert to -1.0 to 1.0 range
             }
             return floats;
+        }
+
+        /// <summary>
+        /// Cleans Base64 string by removing leading / characters - preserves other characters for troubleshooting
+        /// </summary>
+        private string CleanBase64String(string base64String)
+        {
+            if (string.IsNullOrEmpty(base64String))
+                return base64String;
+
+            // Remove any leading / characters - leave everything else intact for troubleshooting
+            int slashCount = 0;
+            while (slashCount < base64String.Length && base64String[slashCount] == '/')
+            {
+                slashCount++;
+            }
+
+            if (slashCount > 0)
+            {
+                Debug.Log($"Cleaned Base64 string by removing {slashCount} leading / character(s)");
+                return base64String.Substring(slashCount);
+            }
+
+            return base64String;
         }
 
         /// <summary>

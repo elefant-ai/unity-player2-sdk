@@ -663,6 +663,9 @@ namespace player2_sdk
                         return;
                     }
 
+                    // Log the complete JSON payload for troubleshooting
+                    Debug.Log($"NPC Message JSON Payload (Event-Id: {_currentEventId}): {dataString}");
+
                     NpcApiChatResponse response =
                         JsonConvert.DeserializeObject<NpcApiChatResponse>(dataString, JsonSerializerSettings ?? new JsonSerializerSettings());
 

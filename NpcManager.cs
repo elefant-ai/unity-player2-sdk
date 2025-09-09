@@ -243,6 +243,32 @@ namespace player2_sdk
                 // Handle audio playback if audio data is available
                 if (response.audio != null && !string.IsNullOrEmpty(response.audio.data))
                 {
+                    // Log detailed audio data information for troubleshooting
+                    string audioDataPreview = response.audio.data.Length > 100 
+                        ? response.audio.data.Substring(0, 100) + "..." 
+                        : response.audio.data;
+                    Debug.Log($"NPC {id} - Audio data received: Length={response.audio.data.Length}, Preview={audioDataPreview}");
+                    
+                    // Validate audio data format
+                    if (response.audio.data.StartsWith("data:"))
+                    {
+                        int commaIndex = response.audio.data.IndexOf(',');
+                        if (commaIndex > 0)
+                        {
+                            string mimeType = response.audio.data.Substring(0, commaIndex);
+                            string base64Data = response.audio.data.Substring(commaIndex + 1);
+                            Debug.Log($"NPC {id} - Audio format: {mimeType}, Base64 length: {base64Data.Length}");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"NPC {id} - Invalid data URL format: no comma separator found");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"NPC {id} - Audio data does not start with 'data:' prefix");
+                    }
+
                     // Check if NPC GameObject has AudioSource, add if needed
                     var audioSource = npcObject.GetComponent<AudioSource>();
                     if (audioSource == null)

@@ -1208,7 +1208,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SimpleAuthExample
   npcManager: {fileID: 321986438}
   gameObjectsToShowAfterAuth:
-  - {fileID: 381491149}
+  - {fileID: 381491147}
 --- !u!114 &571398747
 MonoBehaviour:
   m_ObjectHideFlags: 0
