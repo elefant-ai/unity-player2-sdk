@@ -1,5 +1,112 @@
 mergeInto(LibraryManager.library, {
 
+  // Inline AudioWorklet loader to avoid separate file
+  WebGLMicrophone_LoadInlineWorklet: function(audioContext) {
+    var workletCode = `
+      class WebGLMicrophoneProcessor extends AudioWorkletProcessor {
+        constructor() {
+          try {
+            super();
+            this.bufferSize = 4096;
+            this.buffer = new Float32Array(this.bufferSize);
+            this.bufferIndex = 0;
+
+            // Bind the sendAudioData method to preserve this context
+            this.sendAudioData = this.sendAudioData.bind(this);
+
+            console.log('AudioWorkletProcessor constructor completed, port available:', !!this.port);
+          } catch (error) {
+            console.error('AudioWorkletProcessor constructor error:', error);
+            throw error;
+          }
+        }
+
+        process(inputs, outputs, parameters) {
+          const input = inputs[0];
+          if (input && input.length > 0) {
+            const inputData = input[0];
+            for (let i = 0; i < inputData.length; i++) {
+              this.buffer[this.bufferIndex++] = inputData[i];
+              if (this.bufferIndex >= this.bufferSize) {
+                this.sendAudioData();
+                this.bufferIndex = 0;
+              }
+            }
+          }
+          return true;
+        }
+
+        sendAudioData() {
+          try {
+            const uint8Array = new Uint8Array(this.buffer.buffer);
+            let binaryString = '';
+            for (let i = 0; i < uint8Array.length; i++) {
+              binaryString += String.fromCharCode(uint8Array[i]);
+            }
+            // Use btoa if available, otherwise fallback to manual encoding
+            const base64Data = typeof btoa !== 'undefined' ? btoa(binaryString) : this.base64Encode(binaryString);
+
+            // Check if port is available before using it
+            if (this.port && typeof this.port.postMessage === 'function') {
+              this.port.postMessage({
+                type: 'audioData',
+                base64Data: base64Data
+              });
+            } else {
+              console.warn('AudioWorkletProcessor: MessagePort not available');
+            }
+          } catch (error) {
+            console.error('AudioWorkletProcessor sendAudioData error:', error);
+          }
+        }
+
+        base64Encode(str) {
+          // Fallback base64 encoding for worklet context
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+          let result = '';
+          let i = 0;
+          
+          while (i < str.length) {
+            const a = str.charCodeAt(i++);
+            const b = i < str.length ? str.charCodeAt(i++) : 0;
+            const c = i < str.length ? str.charCodeAt(i++) : 0;
+            
+            const bitmap = (a << 16) | (b << 8) | c;
+            
+            result += chars.charAt((bitmap >> 18) & 63);
+            result += chars.charAt((bitmap >> 12) & 63);
+            result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : '=';
+            result += i - 1 < str.length ? chars.charAt(bitmap & 63) : '=';
+          }
+          
+          return result;
+        }
+      }
+
+      try {
+        registerProcessor('webgl-microphone-processor', WebGLMicrophoneProcessor);
+        console.log('WebGLMicrophoneProcessor registered successfully');
+      } catch (error) {
+        console.error('Failed to register WebGLMicrophoneProcessor:', error);
+        throw error;
+      }
+    `;
+
+    var blob = new Blob([workletCode], { type: 'application/javascript' });
+    var workletUrl = URL.createObjectURL(blob);
+
+    return audioContext.audioWorklet.addModule(workletUrl)
+      .then(function() {
+        console.log('AudioWorklet module loaded successfully');
+        URL.revokeObjectURL(workletUrl);
+      })
+      .catch(function(error) {
+        console.error('Failed to load AudioWorklet module:', error);
+        URL.revokeObjectURL(workletUrl);
+        throw error;
+      });
+  },
+
   // WebGL Microphone API for Unity
   WebGLMicrophone_Init: function(gameObjectNamePtr, callbackMethodNamePtr) {
     var gameObjectName = UTF8ToString(gameObjectNamePtr);
@@ -7,13 +114,81 @@ mergeInto(LibraryManager.library, {
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("WebGLMicrophone: getUserMedia not supported");
-      SendMessage(gameObjectName, callbackMethodName, '0');
+      Module.SendMessage(gameObjectName, callbackMethodName, '0');
       return false;
     }
 
+    // Check if AudioWorklet is supported
+    if (!window.AudioContext || !('audioWorklet' in AudioContext.prototype)) {
+      console.warn("WebGLMicrophone: AudioWorklet not supported, falling back to ScriptProcessorNode");
+      return WebGLMicrophone_InitLegacy(gameObjectName, callbackMethodName);
+    }
+
+    // Request microphone permission and initialize with AudioWorklet
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        // Capture variables in closure
+        var capturedGameObjectName = gameObjectName;
+        var capturedCallbackMethodName = callbackMethodName;
+
+        window.webGLMicrophoneStream = stream;
+        window.webGLMicrophoneContext = new (window.AudioContext || window.webkitAudioContext)();
+        window.webGLMicrophoneSource = window.webGLMicrophoneContext.createMediaStreamSource(stream);
+
+        // Initialize AudioWorklet with inline worklet code
+        return WebGLMicrophone_LoadInlineWorklet(window.webGLMicrophoneContext)
+          .then(function() {
+            try {
+              console.log('Creating AudioWorkletNode...');
+              window.webGLMicrophoneProcessor = new AudioWorkletNode(window.webGLMicrophoneContext, 'webgl-microphone-processor');
+              console.log('AudioWorkletNode created successfully');
+
+              // Set up message handler for audio data from worklet
+              window.webGLMicrophoneProcessor.port.onmessage = function(event) {
+                console.log('Received message from AudioWorklet:', event.data.type);
+                if (event.data.type === 'audioData') {
+                  console.log('Sending audio data to Unity, gameObject:', capturedGameObjectName);
+                  // Send audio data to Unity via SendMessage
+                  Module.SendMessage(capturedGameObjectName, 'OnWebGLAudioData', event.data.base64Data);
+                }
+              };
+
+              console.log('Connecting AudioWorkletNode...');
+              window.webGLMicrophoneSource.connect(window.webGLMicrophoneProcessor);
+              window.webGLMicrophoneProcessor.connect(window.webGLMicrophoneContext.destination);
+              console.log('AudioWorkletNode connected successfully');
+
+              // Confirm initialization
+              Module.SendMessage(capturedGameObjectName, capturedCallbackMethodName, '1');
+              console.log("WebGLMicrophone: Initialized successfully with AudioWorklet");
+            } catch (error) {
+              console.error('Error creating/connecting AudioWorkletNode:', error);
+              throw error;
+            }
+          })
+          .catch(function(innerError) {
+            console.error('AudioWorklet initialization failed, falling back to ScriptProcessorNode:', innerError);
+            // Fallback to ScriptProcessorNode
+            return WebGLMicrophone_InitLegacy(gameObjectName, callbackMethodName);
+          });
+      })
+      .catch(function(error) {
+        console.error("WebGLMicrophone: Failed to get microphone access:", error);
+        Module.SendMessage(gameObjectName, callbackMethodName, '0');
+      });
+
+    return true;
+  },
+
+  // Legacy implementation using deprecated ScriptProcessorNode for fallback
+  WebGLMicrophone_InitLegacy: function(gameObjectName, callbackMethodName) {
     // Request microphone permission and initialize
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(function(stream) {
+        // Capture variables in closure
+        var capturedGameObjectName = gameObjectName;
+        var capturedCallbackMethodName = callbackMethodName;
+
         window.webGLMicrophoneStream = stream;
         window.webGLMicrophoneContext = new (window.AudioContext || window.webkitAudioContext)();
         window.webGLMicrophoneSource = window.webGLMicrophoneContext.createMediaStreamSource(stream);
@@ -33,19 +208,19 @@ mergeInto(LibraryManager.library, {
           var base64Data = btoa(binaryString);
 
           // Send audio data to Unity via SendMessage
-          SendMessage(gameObjectName, 'OnWebGLAudioData', base64Data);
+          Module.SendMessage(capturedGameObjectName, 'OnWebGLAudioData', base64Data);
         };
 
         window.webGLMicrophoneSource.connect(window.webGLMicrophoneProcessor);
         window.webGLMicrophoneProcessor.connect(window.webGLMicrophoneContext.destination);
 
         // Confirm initialization
-        SendMessage(gameObjectName, callbackMethodName, '1');
-        console.log("WebGLMicrophone: Initialized successfully");
+        Module.SendMessage(capturedGameObjectName, capturedCallbackMethodName, '1');
+        console.log("WebGLMicrophone: Initialized successfully with legacy ScriptProcessorNode");
       })
       .catch(function(error) {
         console.error("WebGLMicrophone: Failed to get microphone access:", error);
-        SendMessage(gameObjectName, callbackMethodName, '0');
+        Module.SendMessage(gameObjectName, callbackMethodName, '0');
       });
 
     return true;
@@ -86,14 +261,30 @@ mergeInto(LibraryManager.library, {
     }
 
     if (window.webGLMicrophoneProcessor) {
-      window.webGLMicrophoneProcessor.disconnect();
+      // Handle both AudioWorkletNode and ScriptProcessorNode
+      if (window.webGLMicrophoneProcessor.disconnect) {
+        window.webGLMicrophoneProcessor.disconnect();
+      }
+
+      // If it's an AudioWorkletNode, close the port
+      if (window.webGLMicrophoneProcessor.port) {
+        window.webGLMicrophoneProcessor.port.close();
+      }
+    }
+
+    if (window.webGLMicrophoneContext) {
+      // Close AudioContext if possible
+      if (window.webGLMicrophoneContext.close) {
+        window.webGLMicrophoneContext.close().catch(function(error) {
+          console.warn("WebGLMicrophone: Error closing AudioContext:", error);
+        });
+      }
     }
 
     window.webGLMicrophoneStream = null;
     window.webGLMicrophoneContext = null;
     window.webGLMicrophoneSource = null;
     window.webGLMicrophoneProcessor = null;
-    window.webGLMicrophoneCallback = null;
 
     console.log("WebGLMicrophone: Disposed");
   },
