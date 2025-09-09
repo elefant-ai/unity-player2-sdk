@@ -115,6 +115,20 @@ namespace player2_sdk
 
         private async Awaitable SpawnNpcAsync()
         {
+            if (npcManager == null)
+            {
+                Debug.LogError("Player2Npc.SpawnNpcAsync called but npcManager is NOT assigned. Aborting spawn.");
+                return;
+            }
+
+            // Ensure we have a valid API key before attempting to spawn
+            if (string.IsNullOrEmpty(npcManager.apiKey))
+            {
+                Debug.LogError($"Cannot spawn NPC '{fullName}': No API key available. Please ensure authentication is completed first.");
+                return;
+            }
+
+            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}...");
 
             var spawnData = new SpawnNpc
             {
@@ -131,12 +145,6 @@ namespace player2_sdk
                 },
                 keep_game_state = npcManager.keep_game_state
             };
-
-            if (npcManager == null)
-            {
-                Debug.LogError("Player2Npc.SpawnNpcAsync called but npcManager is NOT assigned. Aborting spawn.");
-                return;
-            }
 
             string url = $"{npcManager.GetBaseUrl()}/npcs/spawn";
             Debug.Log($"Spawning NPC at URL: {url}");
@@ -220,14 +228,22 @@ namespace player2_sdk
 
         private async Awaitable SendChatRequestAsync(ChatRequest chatRequest)
         {
-            if (npcManager.TTS)
-            {
-                chatRequest.tts = "server";
-            }
             if (npcManager == null)
             {
                 Debug.LogError("Cannot send chat request because npcManager is null.");
                 return;
+            }
+
+            // Ensure we have a valid API key before attempting to send chat
+            if (string.IsNullOrEmpty(npcManager.apiKey))
+            {
+                Debug.LogError($"Cannot send chat message: No API key available. Please ensure authentication is completed first.");
+                return;
+            }
+
+            if (npcManager.TTS)
+            {
+                chatRequest.tts = "server";
             }
             string url = $"{npcManager.GetBaseUrl()}/npcs/{_npcID}/chat";
             string json = JsonConvert.SerializeObject(chatRequest, npcManager.JsonSerializerSettings);

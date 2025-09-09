@@ -152,7 +152,7 @@ namespace player2_sdk
                 if (hasToken)
                 {
                     SetState(AuthenticationState.Success);
-                    await Task.Delay(1000);
+                    await WaitForApiTokenReady();
                     HideOverlay();
                     authenticationCompleted.Invoke();
                 }
@@ -431,6 +431,48 @@ namespace player2_sdk
             authenticationFailed.Invoke("User denied authentication");
         }
 
+        private async Task WaitForApiTokenReady()
+        {
+            if (npcManager == null)
+            {
+                Debug.LogWarning("NpcManager is null, cannot wait for API token ready event");
+                return;
+            }
+
+            bool tokenReady = false;
+            void OnTokenReady() => tokenReady = true;
+
+            // Subscribe to the token ready event
+            npcManager.apiTokenReady.AddListener(OnTokenReady);
+
+            try
+            {
+                // Wait for the token to be ready with a reasonable timeout
+                float timeout = 5f; // 5 seconds timeout
+                float elapsed = 0f;
+
+                while (!tokenReady && elapsed < timeout)
+                {
+                    await Task.Delay(50); // Check every 50ms
+                    elapsed += 0.05f;
+                }
+
+                if (!tokenReady)
+                {
+                    Debug.LogWarning("Timeout waiting for API token ready event");
+                }
+                else
+                {
+                    Debug.Log("API token ready event received, authentication flow complete");
+                }
+            }
+            finally
+            {
+                // Clean up the listener
+                npcManager.apiTokenReady.RemoveListener(OnTokenReady);
+            }
+        }
+
         private async Task<bool> TryImmediateWebLogin()
         {
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
@@ -545,7 +587,7 @@ namespace player2_sdk
                         {
                             npcManager.NewApiKey.Invoke(response.p2Key);
                             SetState(AuthenticationState.Success);
-                            await Task.Delay(1500);
+                            await WaitForApiTokenReady();
                             HideOverlay();
                             authenticationCompleted.Invoke();
                             isAuthenticating = false;

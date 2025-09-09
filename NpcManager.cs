@@ -102,6 +102,7 @@ namespace player2_sdk
         public string apiKey = null;
         public UnityEvent spawnNpcs = new UnityEvent();
         public UnityEvent<string> NewApiKey = new UnityEvent<string>();
+        public UnityEvent apiTokenReady = new UnityEvent();
         public List<SerializableFunction> GetSerializableFunctions()
         {
             var serializableFunctions = new List<SerializableFunction>();
@@ -161,6 +162,9 @@ namespace player2_sdk
                 _responseListener.newApiKey.Invoke(apiKey);
                 spawnNpcs.Invoke();
                 Debug.Log($"NpcManager: API key set successfully. Length: {apiKey?.Length ?? 0}");
+                
+                // Signal that API token is ready and all setup is complete
+                apiTokenReady.Invoke();
             });
 
 
