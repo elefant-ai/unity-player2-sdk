@@ -155,8 +155,18 @@ namespace player2_sdk
             using var request = new UnityWebRequest(url, "POST");
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
-            Debug.Log($"Setting Authorization header with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Length: {npcManager.apiKey.Length})");
-            request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+
+            // Skip authentication if running on player2.game domain (cookies will handle auth)
+            if (!npcManager.ShouldSkipAuthentication())
+            {
+                Debug.Log($"Setting Authorization header with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Length: {npcManager.apiKey.Length})");
+                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+            }
+            else
+            {
+                Debug.Log("Skipping Authorization header (WebGL on player2.game domain - using cookies for auth)");
+            }
+
             request.SetRequestHeader("Content-Type", "application/json");
             request.SetRequestHeader("Accept", "application/json");
 
@@ -253,7 +263,13 @@ namespace player2_sdk
             using var request = new UnityWebRequest(url, "POST");
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+
+            // Skip authentication if running on player2.game domain (cookies will handle auth)
+            if (!npcManager.ShouldSkipAuthentication())
+            {
+                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+            }
+
             request.SetRequestHeader("Content-Type", "application/json");
 
             if (!string.IsNullOrEmpty(customTraceId))
