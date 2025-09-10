@@ -121,11 +121,51 @@ namespace player2_sdk
         }
 
         private const string BaseUrl = "https://api.player2.game/v1";
+        private const string BaseUrlPlayer2Game = "https://games.player2.game/_api/v1";
 
         public string GetBaseUrl()
         {
+            // Check if we're running in WebGL and on player2.game domain
+            if (IsWebGLAndOnPlayer2GameDomain())
+            {
+                return BaseUrlPlayer2Game;
+            }
             return BaseUrl;
         }
+
+        /// <summary>
+        /// Check if authentication should be skipped (WebGL on player2.game domain)
+        /// </summary>
+        public bool ShouldSkipAuthentication()
+        {
+            return IsWebGLAndOnPlayer2GameDomain();
+        }
+
+        /// <summary>
+        /// Check if we're running in WebGL and on player2.game domain
+        /// </summary>
+        private bool IsWebGLAndOnPlayer2GameDomain()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            try
+            {
+                string origin = GetWebGLOrigin();
+                return !string.IsNullOrEmpty(origin) && origin.Contains("player2.game");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"Failed to detect WebGL domain: {ex.Message}");
+                return false;
+            }
+#else
+            return false;
+#endif
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern string GetWebGLOrigin();
+#endif
 
         private void Awake()
         {
@@ -151,7 +191,7 @@ namespace player2_sdk
             }
 
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
-            _responseListener._baseUrl = BaseUrl;
+            _responseListener._baseUrl = GetBaseUrl();
 
             _responseListener.SetReconnectionSettings(5, 2.5f);
 
@@ -159,8 +199,13 @@ namespace player2_sdk
             {
                 Debug.Log($"NpcManager.NewApiKey listener: Received API key: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"} (Length: {apiKey?.Length ?? 0})");
                 this.apiKey = apiKey;
+
+                // For WebGL on player2.game domain, pass empty API key to skip auth headers
+                string apiKeyForListener = ShouldSkipAuthentication() ? "" : apiKey;
                 Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
-                _responseListener.newApiKey.Invoke(apiKey);
+                Debug.Log($"NpcManager.NewApiKey listener: Passing to response listener: {(string.IsNullOrEmpty(apiKeyForListener) ? "empty (skipping auth)" : "API key")}");
+
+                _responseListener.newApiKey.Invoke(apiKeyForListener);
                 Debug.Log("NpcManager.NewApiKey listener: API key set, waiting for authentication completion");
             });
 

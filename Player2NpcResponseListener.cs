@@ -342,7 +342,15 @@ namespace player2_sdk
             request.timeout = 0;
 
             // Set headers for streaming
-            request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
+
+            // Skip authentication if running on player2.game domain (cookies will handle auth)
+            // Note: We need to get the npcManager reference to check this condition
+            // For now, we'll assume the caller knows when to skip auth and passes empty apiKey
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
+            }
+
             request.SetRequestHeader("Accept", "text/event-stream");
             request.SetRequestHeader("Cache-Control", "no-cache");
             request.SetRequestHeader("Connection", "keep-alive");
