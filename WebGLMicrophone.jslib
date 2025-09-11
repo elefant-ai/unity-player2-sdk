@@ -107,9 +107,13 @@ mergeInto(LibraryManager.library, {
     // Helper function to initialize legacy ScriptProcessorNode (to avoid code duplication)
     var initScriptProcessor = function(stream, context, source, goName, cbName) {
       try {
+        // Initialize recording state flag
+        window.webGLMicrophoneRecording = false;
         window.webGLMicrophoneProcessor = context.createScriptProcessor(4096, 1, 1);
         
         window.webGLMicrophoneProcessor.onaudioprocess = function(event) {
+          if (!window.webGLMicrophoneRecording) return;
+          
           var inputBuffer = event.inputBuffer;
           var inputData = inputBuffer.getChannelData(0);
           var floatArray = new Float32Array(inputData);
@@ -265,11 +269,12 @@ mergeInto(LibraryManager.library, {
               window.webGLMicrophoneProcessor = new AudioWorkletNode(window.webGLMicrophoneContext, 'webgl-microphone-processor');
               console.log('AudioWorkletNode created successfully');
 
+              // Initialize recording state flag
+              window.webGLMicrophoneRecording = false;
+              
               // Set up message handler for audio data from worklet
               window.webGLMicrophoneProcessor.port.onmessage = function(event) {
-                console.log('Received message from AudioWorklet:', event.data.type);
-                if (event.data.type === 'audioData') {
-                  console.log('Sending audio data to Unity, gameObject:', capturedGameObjectName);
+                if (event.data.type === 'audioData' && window.webGLMicrophoneRecording) {
                   // Send audio data to Unity via SendMessage
                   Module.SendMessage(capturedGameObjectName, 'OnWebGLAudioData', event.data.base64Data);
                 }
@@ -314,9 +319,14 @@ mergeInto(LibraryManager.library, {
         window.webGLMicrophoneStream = stream;
         window.webGLMicrophoneContext = new (window.AudioContext || window.webkitAudioContext)();
         window.webGLMicrophoneSource = window.webGLMicrophoneContext.createMediaStreamSource(stream);
+        
+        // Initialize recording state flag
+        window.webGLMicrophoneRecording = false;
         window.webGLMicrophoneProcessor = window.webGLMicrophoneContext.createScriptProcessor(4096, 1, 1);
 
         window.webGLMicrophoneProcessor.onaudioprocess = function(event) {
+          if (!window.webGLMicrophoneRecording) return;
+          
           var inputBuffer = event.inputBuffer;
           var inputData = inputBuffer.getChannelData(0);
 
@@ -350,6 +360,9 @@ mergeInto(LibraryManager.library, {
 
   WebGLMicrophone_StartRecording: function() {
     if (window.webGLMicrophoneProcessor && window.webGLMicrophoneContext) {
+      // Enable recording flag to start sending audio data
+      window.webGLMicrophoneRecording = true;
+      
       // Ensure AudioContext is running (required by modern browsers)
       if (window.webGLMicrophoneContext.state === 'suspended') {
         window.webGLMicrophoneContext.resume().then(function() {
@@ -365,6 +378,8 @@ mergeInto(LibraryManager.library, {
 
   WebGLMicrophone_StopRecording: function() {
     if (window.webGLMicrophoneProcessor && window.webGLMicrophoneContext) {
+      // Disable recording flag to stop sending audio data
+      window.webGLMicrophoneRecording = false;
       window.webGLMicrophoneContext.suspend();
       return true;
     }
@@ -407,6 +422,7 @@ mergeInto(LibraryManager.library, {
     window.webGLMicrophoneContext = null;
     window.webGLMicrophoneSource = null;
     window.webGLMicrophoneProcessor = null;
+    window.webGLMicrophoneRecording = false;
 
     console.log("WebGLMicrophone: Disposed");
   },
