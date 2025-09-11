@@ -122,13 +122,13 @@ namespace player2_sdk
             }
 
             // Ensure we have a valid API key before attempting to spawn
-            if (string.IsNullOrEmpty(npcManager.apiKey))
+            if (string.IsNullOrEmpty(npcManager.GetApiKey()))
             {
                 Debug.LogError($"Cannot spawn NPC '{fullName}': No API key available. Please ensure authentication is completed first.");
                 return;
             }
 
-            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Full length: {npcManager.apiKey.Length})");
+            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.GetApiKey().Substring(0, Math.Min(10, npcManager.GetApiKey().Length))}... (Full length: {npcManager.GetApiKey().Length})");
 
             var spawnData = new SpawnNpc
             {
@@ -159,8 +159,8 @@ namespace player2_sdk
             // Skip authentication if running on player2.game domain (cookies will handle auth)
             if (!npcManager.ShouldSkipAuthentication())
             {
-                Debug.Log($"Setting Authorization header with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Length: {npcManager.apiKey.Length})");
-                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+                Debug.Log($"Setting Authorization header with API key: {npcManager.GetApiKey().Substring(0, Math.Min(10, npcManager.GetApiKey().Length))}... (Length: {npcManager.GetApiKey().Length})");
+                request.SetRequestHeader("Authorization", $"Bearer {npcManager.GetApiKey()}");
             }
             else
             {
@@ -246,7 +246,7 @@ namespace player2_sdk
             }
 
             // Ensure we have a valid API key before attempting to send chat
-            if (string.IsNullOrEmpty(npcManager.apiKey))
+            if (string.IsNullOrEmpty(npcManager.GetApiKey()))
             {
                 Debug.LogError($"Cannot send chat message: No API key available. Please ensure authentication is completed first.");
                 return;
@@ -267,7 +267,7 @@ namespace player2_sdk
             // Skip authentication if running on player2.game domain (cookies will handle auth)
             if (!npcManager.ShouldSkipAuthentication())
             {
-                request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+                request.SetRequestHeader("Authorization", $"Bearer {npcManager.GetApiKey()}");
             }
 
             request.SetRequestHeader("Content-Type", "application/json");

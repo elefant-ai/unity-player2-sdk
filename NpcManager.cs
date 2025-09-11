@@ -72,7 +72,8 @@ namespace player2_sdk
         [Header("Config")]
         [SerializeField]
         [Tooltip("The Client ID is used to identify your game. It can be acquired from the Player2 Developer Dashboard")]
-        public string clientId = null;
+        public string 
+            clientId;
 
         [SerializeField]
         [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the tts.voice_ids configuration.")]
@@ -99,7 +100,12 @@ namespace player2_sdk
             }
         };
 
-        public string apiKey = null;
+        string apiKey = null;
+        
+        
+        public string GetApiKey() => apiKey;
+        
+        
         public UnityEvent spawnNpcs = new UnityEvent();
         public UnityEvent<string> NewApiKey = new UnityEvent<string>();
         public UnityEvent apiTokenReady = new UnityEvent();
@@ -149,7 +155,7 @@ namespace player2_sdk
 #if UNITY_WEBGL && !UNITY_EDITOR
             try
             {
-                string origin = GetWebGLOrigin();
+                string origin = Application.absoluteURL;
                 return !string.IsNullOrEmpty(origin) && origin.Contains("player2.game");
             }
             catch (Exception ex)
@@ -162,10 +168,7 @@ namespace player2_sdk
 #endif
         }
 
-#if UNITY_WEBGL && !UNITY_EDITOR
-        [System.Runtime.InteropServices.DllImport("__Internal")]
-        private static extern string GetWebGLOrigin();
-#endif
+
 
         private void Awake()
         {
@@ -191,7 +194,7 @@ namespace player2_sdk
             }
 
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
-            _responseListener._baseUrl = GetBaseUrl();
+            _responseListener.BaseUrl = GetBaseUrl();
 
             _responseListener.SetReconnectionSettings(5, 2.5f);
 
@@ -205,7 +208,7 @@ namespace player2_sdk
                 Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
                 Debug.Log($"NpcManager.NewApiKey listener: Passing to response listener: {(string.IsNullOrEmpty(apiKeyForListener) ? "empty (skipping auth)" : "API key")}");
 
-                _responseListener.newApiKey.Invoke(apiKeyForListener);
+                _responseListener.InvokeNewApiKey(apiKeyForListener);
                 Debug.Log("NpcManager.NewApiKey listener: API key set, waiting for authentication completion");
             });
 
@@ -225,7 +228,7 @@ namespace player2_sdk
         {
             if (string.IsNullOrEmpty(clientId))
             {
-                Debug.LogError("NpcManager requires a Game ID to be set.", this);
+                Debug.LogError("NpcManager requires a Client ID to be set.", this);
             }
         }
 

@@ -65,7 +65,7 @@ namespace player2_sdk
             string welcomeMessage = "SPEECH-TO-TEXT READY\n" +
                                   "Click the button to start recording.\n" +
                                   "Transcripts will appear here in real-time.\n" +
-                                  "========================================\n";
+                                  "=========================\n";
 
             transcriptBuilder.AppendLine(welcomeMessage);
             UpdateTranscriptDisplay();

@@ -63,7 +63,19 @@ namespace player2_sdk
 
     public class Player2NpcResponseListener : MonoBehaviour
     {
-        public string _baseUrl = null;
+        string _baseUrl = null;
+        public string BaseUrl
+        {
+            get => _baseUrl;
+            set
+            {
+                if (_baseUrl != value)
+                {
+                    Debug.Log($"Base URL changed from {_baseUrl ?? "null"} to {value ?? "null"}");
+                    _baseUrl = value;
+                }
+            }
+        }
         [Header("Reconnection Settings")]
         [SerializeField]
         [Tooltip("Delay in seconds between reconnection attempts")]
@@ -95,7 +107,12 @@ namespace player2_sdk
             new Dictionary<string, UnityEvent<NpcApiChatResponse>>();
 
         public JsonSerializerSettings JsonSerializerSettings;
-        public UnityEvent<string> newApiKey = new UnityEvent<string>();
+        UnityEvent<string> newApiKey = new UnityEvent<string>();
+        
+        public void InvokeNewApiKey(string key)
+        {
+            newApiKey.Invoke(key);
+        }
 
         public bool IsListening => _isListening;
 
@@ -355,6 +372,7 @@ namespace player2_sdk
             request.SetRequestHeader("Cache-Control", "no-cache");
             request.SetRequestHeader("Connection", "keep-alive");
 
+            
             // Send Last-Event-Id if we have one (for reconnection)
             if (!string.IsNullOrEmpty(_lastEventId))
             {

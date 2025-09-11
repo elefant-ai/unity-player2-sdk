@@ -269,7 +269,7 @@ namespace player2_sdk
             descriptionText.extraPadding = true;
             descriptionText.color = new Color(0.85f, 0.9f, 0.95f, 1f);
             descriptionText.alignment = TextAlignmentOptions.Left;
-            descriptionText.enableWordWrapping = true;
+            descriptionText.textWrappingMode = TextWrappingModes.Normal;
             descriptionText.fontStyle = FontStyles.Normal;
             descriptionText.lineSpacing = 1.3f;
 
@@ -753,7 +753,7 @@ namespace player2_sdk
 
         public bool IsAuthenticated()
         {
-            return !string.IsNullOrEmpty(npcManager?.apiKey);
+            return !string.IsNullOrEmpty(npcManager?.GetApiKey());
         }
 
         public void ForceShowAuthUI()

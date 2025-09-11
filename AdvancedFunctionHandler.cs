@@ -139,7 +139,7 @@ namespace player2_sdk
 
             for (int i = 0; i < quantity; i++)
             {
-                Vector3 spawnPosition = spawnCenter + Random.insideUnitSphere * spawnRadius;
+                Vector3 spawnPosition = spawnCenter + UnityEngine.Random.insideUnitSphere * spawnRadius;
                 spawnPosition.y = Mathf.Max(spawnPosition.y, 0); // Keep above ground
 
                 SpawnItem(itemName, spawnPosition);

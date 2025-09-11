@@ -256,7 +256,7 @@ namespace player2_sdk
     private async Awaitable<bool> TryImmediateWebLogin()
         {
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
-            using var request = UnityWebRequest.Post(url, string.Empty);
+            using var request = UnityWebRequest.PostWwwForm(url, string.Empty);
             request.SetRequestHeader("Accept", "application/json");
             await request.SendWebRequest();
 
