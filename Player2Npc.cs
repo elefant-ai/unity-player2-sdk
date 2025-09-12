@@ -128,7 +128,7 @@ namespace player2_sdk
                 return;
             }
 
-            Debug.Log($"Spawning NPC '{fullName}' with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Full length: {npcManager.apiKey.Length})");
+            Debug.Log($"Spawning NPC '{fullName}' with API key");
 
             var spawnData = new SpawnNpc
             {
@@ -159,7 +159,7 @@ namespace player2_sdk
             // Skip authentication if running on player2.game domain (cookies will handle auth)
             if (!npcManager.ShouldSkipAuthentication())
             {
-                Debug.Log($"Setting Authorization header with API key: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}... (Length: {npcManager.apiKey.Length})");
+                Debug.Log("Setting Authorization header with API key");
                 request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
             }
             else

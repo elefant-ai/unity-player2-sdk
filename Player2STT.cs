@@ -347,7 +347,7 @@ namespace player2_sdk
                 Debug.Log($"Player2STT: Starting STT. API key available: {!string.IsNullOrEmpty(npcManager?.apiKey)}");
                 if (!string.IsNullOrEmpty(npcManager?.apiKey))
                 {
-                    Debug.Log($"Player2STT: API key starts with: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}");
+                    Debug.Log("Player2STT: API key available");
                 }
                 StartSTTWeb();
             }
@@ -458,7 +458,7 @@ namespace player2_sdk
                 if (!string.IsNullOrEmpty(npcManager.apiKey))
                 {
                     queryParams.Add($"token={npcManager.apiKey}");
-                    Debug.Log($"Player2STT: Adding token to query params: {npcManager.apiKey.Substring(0, Math.Min(10, npcManager.apiKey.Length))}...");
+                    Debug.Log("Player2STT: Adding token to query params");
                 }
                 else
                 {

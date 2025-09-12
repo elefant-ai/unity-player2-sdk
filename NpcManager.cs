@@ -198,9 +198,9 @@ namespace player2_sdk
 
             NewApiKey.AddListener(async (apiKey) =>
             {
-                Debug.Log($"NpcManager.NewApiKey listener: Received API key: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"} (Length: {apiKey?.Length ?? 0})");
+                Debug.Log("NpcManager.NewApiKey listener: Received API key");
                 this.apiKey = apiKey;
-                Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
+                Debug.Log("NpcManager.NewApiKey listener: API key set");
                 
                 // For WebGL on player2.game domain, pass empty API key to skip auth headers
                 string apiKeyForListener = ShouldSkipAuthentication() ? "" : apiKey;
@@ -232,7 +232,7 @@ namespace player2_sdk
             {
                 Debug.Log("NpcManager.apiTokenReady listener: Authentication fully complete, spawning NPCs");
                 spawnNpcs.Invoke();
-                Debug.Log($"NpcManager.apiTokenReady listener: spawnNpcs invoked, API key length: {apiKey?.Length ?? 0}");
+                Debug.Log("NpcManager.apiTokenReady listener: spawnNpcs invoked");
             });
             
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
