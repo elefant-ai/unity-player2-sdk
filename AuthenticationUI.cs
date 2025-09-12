@@ -611,6 +611,13 @@ namespace player2_sdk
                 string json = JsonConvert.SerializeObject(tokenRequest, npcManager.JsonSerializerSettings);
                 byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
 
+                // Suppress console error logs for expected polling failures
+                bool originalDebugEnabled = Debug.unityLogger.logEnabled;
+                if (Application.platform == RuntimePlatform.WebGLPlayer)
+                {
+                    Debug.unityLogger.logEnabled = false;
+                }
+
                 using var request = new UnityWebRequest(url, "POST");
                 request.uploadHandler = new UploadHandlerRaw(bodyRaw);
                 request.downloadHandler = new DownloadHandlerBuffer();
@@ -618,6 +625,12 @@ namespace player2_sdk
                 request.SetRequestHeader("Accept", "application/json");
 
                 await request.SendWebRequest();
+
+                // Restore logging for non-WebGL or after request
+                if (Application.platform == RuntimePlatform.WebGLPlayer)
+                {
+                    Debug.unityLogger.logEnabled = originalDebugEnabled;
+                }
 
                 if (request.result == UnityWebRequest.Result.Success)
                 {

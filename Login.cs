@@ -98,6 +98,7 @@ namespace player2_sdk
                 Debug.Log("Token received");
 
                 npcManager.NewApiKey.Invoke(token);
+                npcManager.apiTokenReady.Invoke();
                 authenticationFinished.Invoke();
             }
             catch (Exception e)
@@ -197,7 +198,6 @@ namespace player2_sdk
                                 {
                                     // RFC 8628 suggests increasing the interval on slow_down
                                     pollInterval += 5;
-                                    Debug.Log($"Token polling 'slow_down' received. Increasing interval to {pollInterval}s.");
                                 }
                                 else if (string.Equals(err, "expired_token", StringComparison.OrdinalIgnoreCase) ||
                                          string.Equals(err, "expired_token_code", StringComparison.OrdinalIgnoreCase))
@@ -208,26 +208,22 @@ namespace player2_sdk
                                 else
                                 {
                                     // authorization_pending or unknown -> continue polling
-                                    Debug.Log($"Token not ready yet ({err ?? "authorization_pending"}). Polling again...");
                                 }
                             }
                             else
                             {
                                 // No structured error? Treat as pending and keep polling.
-                                Debug.Log("Token not ready yet (HTTP 400). Polling again...");
                             }
                         }
                         catch
                         {
                             // Body not JSON; still treat as pending
-                            Debug.Log("Token not ready yet (HTTP 400, unparseable body). Polling again...");
                         }
                     }
                     else if (code == 429)
                     {
                         // Too many requests — backoff a bit
                         pollInterval += 5;
-                        Debug.Log($"HTTP 429 received. Backing off; new interval {pollInterval}s.");
                     }
                     else
                     {
@@ -256,7 +252,7 @@ namespace player2_sdk
     private async Awaitable<bool> TryImmediateWebLogin()
         {
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
-            using var request = UnityWebRequest.Post(url, string.Empty);
+            using var request = UnityWebRequest.PostWwwForm(url, string.Empty);
             request.SetRequestHeader("Accept", "application/json");
             await request.SendWebRequest();
 
@@ -271,6 +267,7 @@ namespace player2_sdk
                         if (!string.IsNullOrEmpty(resp?.p2Key))
                         {
                             npcManager.NewApiKey.Invoke(resp.p2Key);
+                            npcManager.apiTokenReady.Invoke();
                             authenticationFinished.Invoke();
                             return true;
                         }
