@@ -95,11 +95,19 @@ namespace player2_sdk
                 Application.OpenURL(response.verificationUriComplete);
 
                 var token = await GetToken(response);
-                Debug.Log("Token received");
+                Debug.Log("Token received, validating with health check...");
 
-                npcManager.NewApiKey.Invoke(token);
-                npcManager.apiTokenReady.Invoke();
-                authenticationFinished.Invoke();
+                bool tokenValid = await TokenValidator.ValidateAndSetTokenAsync(token, npcManager);
+                if (tokenValid)
+                {
+                    Debug.Log("Token validation successful");
+                    authenticationFinished.Invoke();
+                }
+                else
+                {
+                    Debug.LogError("Token validation failed");
+                    throw new Exception("Token validation failed");
+                }
             }
             catch (Exception e)
             {
@@ -155,6 +163,13 @@ namespace player2_sdk
                 string json = JsonConvert.SerializeObject(tokenRequest, npcManager.JsonSerializerSettings);
                 byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
 
+                // Suppress console error logs for expected polling failures (400 = authorization_pending)
+                bool originalLogEnabled = Debug.unityLogger.logEnabled;
+                if (Application.platform == RuntimePlatform.WebGLPlayer)
+                {
+                    Debug.unityLogger.logEnabled = false;
+                }
+
                 using var request = new UnityWebRequest(url, "POST");
                 request.uploadHandler = new UploadHandlerRaw(bodyRaw);
                 request.downloadHandler = new DownloadHandlerBuffer();
@@ -162,6 +177,12 @@ namespace player2_sdk
                 request.SetRequestHeader("Accept", "application/json");
 
                 await request.SendWebRequest();
+
+                // Restore logging after request
+                if (Application.platform == RuntimePlatform.WebGLPlayer)
+                {
+                    Debug.unityLogger.logEnabled = originalLogEnabled;
+                }
 
                 // Success path
                 if (request.result == UnityWebRequest.Result.Success)
@@ -266,10 +287,19 @@ namespace player2_sdk
                         var resp = JsonConvert.DeserializeObject<TokenResponse>(text);
                         if (!string.IsNullOrEmpty(resp?.p2Key))
                         {
-                            npcManager.NewApiKey.Invoke(resp.p2Key);
-                            npcManager.apiTokenReady.Invoke();
-                            authenticationFinished.Invoke();
-                            return true;
+                            Debug.Log("TryImmediateWebLogin: Got token, validating with health check...");
+                            bool tokenValid = await TokenValidator.ValidateAndSetTokenAsync(resp.p2Key, npcManager);
+                            if (tokenValid)
+                            {
+                                Debug.Log("TryImmediateWebLogin: Token validation successful");
+                                authenticationFinished.Invoke();
+                                return true;
+                            }
+                            else
+                            {
+                                Debug.LogError("TryImmediateWebLogin: Token validation failed");
+                                return false;
+                            }
                         }
                         Debug.Log("Immediate web login response lacked p2Key.");
                     }

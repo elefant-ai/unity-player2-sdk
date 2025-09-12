@@ -12,6 +12,7 @@ namespace player2_sdk
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
     using UnityEngine.Serialization;
+    using UnityEngine.Networking;
 
     [Serializable]
     public class Function
@@ -195,18 +196,35 @@ namespace player2_sdk
 
             _responseListener.SetReconnectionSettings(5, 2.5f);
 
-            NewApiKey.AddListener((apiKey) =>
+            NewApiKey.AddListener(async (apiKey) =>
             {
                 Debug.Log($"NpcManager.NewApiKey listener: Received API key: {apiKey?.Substring(0, Math.Min(10, apiKey?.Length ?? 0)) ?? "null"} (Length: {apiKey?.Length ?? 0})");
                 this.apiKey = apiKey;
-
+                Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
+                
                 // For WebGL on player2.game domain, pass empty API key to skip auth headers
                 string apiKeyForListener = ShouldSkipAuthentication() ? "" : apiKey;
-                Debug.Log($"NpcManager.NewApiKey listener: Set this.apiKey to: {this.apiKey?.Substring(0, Math.Min(10, this.apiKey?.Length ?? 0)) ?? "null"}");
                 Debug.Log($"NpcManager.NewApiKey listener: Passing to response listener: {(string.IsNullOrEmpty(apiKeyForListener) ? "empty (skipping auth)" : "API key")}");
-
+                
+                // Set the API key on the response listener
                 _responseListener.newApiKey.Invoke(apiKeyForListener);
-                Debug.Log("NpcManager.NewApiKey listener: API key set, waiting for authentication completion");
+                
+                // Wait for the response listener to actually be connected before signaling ready
+                await WaitForResponseListenerReady();
+                
+                // Verify token works with health check before signaling ready
+                Debug.Log("NpcManager.NewApiKey listener: Response listener connected, performing health check...");
+                bool healthCheckPassed = await TokenValidator.ValidateTokenAsync(apiKey, this);
+                
+                if (healthCheckPassed)
+                {
+                    Debug.Log("NpcManager.NewApiKey listener: Health check passed, signaling API token ready");
+                    apiTokenReady.Invoke();
+                }
+                else
+                {
+                    Debug.LogError("NpcManager.NewApiKey listener: Health check failed, token is not working properly. Not signaling ready.");
+                }
             });
 
             // Listen for when the authentication system signals it's fully ready
@@ -219,6 +237,31 @@ namespace player2_sdk
             
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
         }
+
+        private async Awaitable WaitForResponseListenerReady()
+        {
+            if (_responseListener == null) return;
+
+            // Wait for the response listener to actually establish its connection
+            int attempts = 0;
+            const int maxAttempts = 50; // 5 seconds max (50 * 100ms)
+            
+            while (!_responseListener.IsListening && attempts < maxAttempts)
+            {
+                await Awaitable.WaitForSecondsAsync(0.1f);
+                attempts++;
+            }
+
+            if (!_responseListener.IsListening)
+            {
+                Debug.LogWarning("Response listener failed to connect within timeout, proceeding anyway");
+            }
+            else
+            {
+                Debug.Log($"Response listener connected after {attempts * 100}ms");
+            }
+        }
+
 
 
         private void OnValidate()

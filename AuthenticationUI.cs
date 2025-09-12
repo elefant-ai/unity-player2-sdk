@@ -148,7 +148,6 @@ namespace player2_sdk
                 {
                     SetState(AuthenticationState.Success);
                     HideOverlay();
-                    npcManager.apiTokenReady.Invoke();
                     authenticationCompleted.Invoke();
                 }
                 else
@@ -469,45 +468,6 @@ namespace player2_sdk
         }
 
 
-        private async Task WaitForApiTokenReady()
-        {
-            if (npcManager == null)
-            {
-                Debug.LogWarning("NpcManager is null, cannot wait for API token ready event");
-                return;
-            }
-
-            bool tokenReady = false;
-            void OnTokenReady() => tokenReady = true;
-
-            // Subscribe to the token ready event
-            npcManager.apiTokenReady.AddListener(OnTokenReady);
-
-            try
-            {
-                float timeout = 5f;
-                float elapsed = 0f;
-
-                while (!tokenReady && elapsed < timeout)
-                {
-                    await Task.Delay(50);
-                    elapsed += 0.05f;
-                }
-
-                if (!tokenReady)
-                {
-                    Debug.LogWarning("Timeout waiting for API token ready event");
-                }
-                else
-                {
-                    Debug.Log("API token ready event received, authentication flow complete");
-                }
-            }
-            finally
-            {
-                npcManager.apiTokenReady.RemoveListener(OnTokenReady);
-            }
-        }
 
         private async Task<bool> TryImmediateWebLogin()
         {
@@ -528,9 +488,18 @@ namespace player2_sdk
                         var resp = JsonConvert.DeserializeObject<TokenResponse>(text);
                         if (!string.IsNullOrEmpty(resp?.p2Key))
                         {
-                            Debug.Log($"TryImmediateWebLogin: Got API key, length: {resp.p2Key.Length}");
-                            npcManager.NewApiKey.Invoke(resp.p2Key);
-                            return true;
+                            Debug.Log($"TryImmediateWebLogin: Got API key, validating with health check...");
+                            bool tokenValid = await TokenValidator.ValidateAndSetTokenAsync(resp.p2Key, npcManager);
+                            if (tokenValid)
+                            {
+                                Debug.Log("TryImmediateWebLogin: Token validation successful");
+                                return true;
+                            }
+                            else
+                            {
+                                Debug.LogError("TryImmediateWebLogin: Token validation failed");
+                                return false;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -611,8 +580,8 @@ namespace player2_sdk
                 string json = JsonConvert.SerializeObject(tokenRequest, npcManager.JsonSerializerSettings);
                 byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
 
-                // Suppress console error logs for expected polling failures
-                bool originalDebugEnabled = Debug.unityLogger.logEnabled;
+                // Suppress console error logs for expected polling failures (400 = authorization_pending)
+                bool originalLogEnabled = Debug.unityLogger.logEnabled;
                 if (Application.platform == RuntimePlatform.WebGLPlayer)
                 {
                     Debug.unityLogger.logEnabled = false;
@@ -626,10 +595,10 @@ namespace player2_sdk
 
                 await request.SendWebRequest();
 
-                // Restore logging for non-WebGL or after request
+                // Restore logging after request
                 if (Application.platform == RuntimePlatform.WebGLPlayer)
                 {
-                    Debug.unityLogger.logEnabled = originalDebugEnabled;
+                    Debug.unityLogger.logEnabled = originalLogEnabled;
                 }
 
                 if (request.result == UnityWebRequest.Result.Success)
@@ -639,13 +608,21 @@ namespace player2_sdk
                         var response = JsonConvert.DeserializeObject<TokenResponse>(request.downloadHandler.text);
                         if (!string.IsNullOrEmpty(response?.p2Key))
                         {
-                            npcManager.NewApiKey.Invoke(response.p2Key);
-                            SetState(AuthenticationState.Success);
-                            HideOverlay();
-                            npcManager.apiTokenReady.Invoke();
-                            authenticationCompleted.Invoke();
-                            isAuthenticating = false;
-                            return;
+                            Debug.Log("PollForToken: Got token, validating with health check...");
+                            bool tokenValid = await TokenValidator.ValidateAndSetTokenAsync(response.p2Key, npcManager);
+                            if (tokenValid)
+                            {
+                                Debug.Log("PollForToken: Token validation successful");
+                                SetState(AuthenticationState.Success);
+                                HideOverlay();
+                                authenticationCompleted.Invoke();
+                                isAuthenticating = false;
+                                return;
+                            }
+                            else
+                            {
+                                Debug.LogError("PollForToken: Token validation failed, continuing to poll");
+                            }
                         }
                     }
                 }
