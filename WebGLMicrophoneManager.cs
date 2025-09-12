@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace Player2SDK.WebGL
+namespace player2_sdk
 {
     /// <summary>
     /// WebGL-compatible microphone manager that uses browser APIs

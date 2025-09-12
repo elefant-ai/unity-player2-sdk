@@ -76,6 +76,7 @@ namespace player2_sdk
                 }
             }
         }
+        private NpcManager _npcManager;
         [Header("Reconnection Settings")]
         [SerializeField]
         [Tooltip("Delay in seconds between reconnection attempts")]
@@ -138,6 +139,9 @@ namespace player2_sdk
 
         private void Awake()
         {
+            // Get reference to NpcManager on the same GameObject
+            _npcManager = GetComponent<NpcManager>();
+            
             // Ensure JsonSerializerSettings is initialized
             if (newApiKey == null)
             {
@@ -220,10 +224,21 @@ namespace player2_sdk
                 return;
             }
 
-            if (string.IsNullOrEmpty(apiKey))
+            // Allow empty API key for hosted scenarios where authentication is bypassed
+            bool skipAuth = _npcManager != null && _npcManager.ShouldSkipAuthentication();
+            if (string.IsNullOrEmpty(apiKey) && !skipAuth)
             {
                 Debug.LogError("Cannot start listening: user is not authenticated");
                 return;
+            }
+            
+            if (skipAuth)
+            {
+                Debug.Log("Player2NpcResponseListener: Starting listener in hosted mode (no API key required)");
+            }
+            else
+            {
+                Debug.Log("Player2NpcResponseListener: Starting listener with API key authentication");
             }
 
             _isListening = true;
@@ -313,10 +328,21 @@ namespace player2_sdk
                 throw new Exception("Base URL is not configured");
             }
 
-            if (string.IsNullOrEmpty(apiKey))
+            // Allow empty API key for hosted scenarios where authentication is bypassed
+            bool skipAuth = _npcManager != null && _npcManager.ShouldSkipAuthentication();
+            if (string.IsNullOrEmpty(apiKey) && !skipAuth)
             {
                 Debug.LogError("Cannot connect to response stream: API key is not set");
                 throw new Exception("API key is not configured");
+            }
+            
+            if (skipAuth)
+            {
+                Debug.Log("Player2NpcResponseListener: Connecting to response stream in hosted mode (no API key required)");
+            }
+            else
+            {
+                Debug.Log("Player2NpcResponseListener: Connecting to response stream with API key authentication");
             }
 
             string url = $"{_baseUrl}/npcs/responses";
@@ -372,7 +398,6 @@ namespace player2_sdk
             request.SetRequestHeader("Cache-Control", "no-cache");
             request.SetRequestHeader("Connection", "keep-alive");
 
-            
             // Send Last-Event-Id if we have one (for reconnection)
             if (!string.IsNullOrEmpty(_lastEventId))
             {
@@ -835,9 +860,14 @@ namespace player2_sdk
             {
                 StopListening();
             }
-            else if (!string.IsNullOrEmpty(apiKey))
+            else
             {
-                StartListening();
+                // Start listening if we have API key OR if auth is bypassed for hosted scenarios
+                bool skipAuth = _npcManager != null && _npcManager.ShouldSkipAuthentication();
+                if (!string.IsNullOrEmpty(apiKey) || skipAuth)
+                {
+                    StartListening();
+                }
             }
         }
 
@@ -853,9 +883,14 @@ namespace player2_sdk
             {
                 StopListening();
             }
-            else if (!string.IsNullOrEmpty(apiKey))
+            else
             {
-                StartListening();
+                // Start listening if we have API key OR if auth is bypassed for hosted scenarios  
+                bool skipAuth = _npcManager != null && _npcManager.ShouldSkipAuthentication();
+                if (!string.IsNullOrEmpty(apiKey) || skipAuth)
+                {
+                    StartListening();
+                }
             }
         }
     }
