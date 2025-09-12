@@ -121,11 +121,20 @@ namespace player2_sdk
                 return;
             }
 
-            // Ensure we have a valid API key before attempting to spawn
-            if (string.IsNullOrEmpty(npcManager.apiKey))
+            // Ensure we have a valid API key before attempting to spawn (unless auth is bypassed for hosted scenarios)
+            if (string.IsNullOrEmpty(npcManager.apiKey) && !npcManager.ShouldSkipAuthentication())
             {
                 Debug.LogError($"Cannot spawn NPC '{fullName}': No API key available. Please ensure authentication is completed first.");
                 return;
+            }
+            
+            if (npcManager.ShouldSkipAuthentication())
+            {
+                Debug.Log($"Spawning NPC '{fullName}' in hosted mode (no API key required)");
+            }
+            else
+            {
+                Debug.Log($"Spawning NPC '{fullName}' with API key authentication");
             }
 
             Debug.Log($"Spawning NPC '{fullName}' with API key");
@@ -245,8 +254,8 @@ namespace player2_sdk
                 return;
             }
 
-            // Ensure we have a valid API key before attempting to send chat
-            if (string.IsNullOrEmpty(npcManager.apiKey))
+            // Ensure we have a valid API key before attempting to send chat (unless auth is bypassed for hosted scenarios)
+            if (string.IsNullOrEmpty(npcManager.apiKey) && !npcManager.ShouldSkipAuthentication())
             {
                 Debug.LogError($"Cannot send chat message: No API key available. Please ensure authentication is completed first.");
                 return;

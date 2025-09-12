@@ -272,6 +272,21 @@ namespace player2_sdk
 
     private async Awaitable<bool> TryImmediateWebLogin()
         {
+            // Skip localhost authentication if running in WebGL on player2.game domain
+            Debug.Log("Login.TryImmediateWebLogin: Checking if localhost authentication should be skipped...");
+            if (npcManager.ShouldSkipAuthentication())
+            {
+                Debug.Log("Login.TryImmediateWebLogin: Running on player2.game domain, skipping localhost authentication");
+                Debug.Log($"Login.TryImmediateWebLogin: API requests will use: {npcManager.GetBaseUrl()}");
+                authenticationFinished.Invoke();
+                Debug.Log("Login.TryImmediateWebLogin: Authentication bypass completed successfully");
+                return true;
+            }
+            else
+            {
+                Debug.Log("Login.TryImmediateWebLogin: Not on player2.game domain, proceeding with localhost authentication");
+            }
+
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
             using var request = UnityWebRequest.PostWwwForm(url, string.Empty);
             request.SetRequestHeader("Accept", "application/json");

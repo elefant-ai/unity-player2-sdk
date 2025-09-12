@@ -327,8 +327,14 @@ namespace player2_sdk
 
         private bool HasApiConnection()
         {
-            bool hasConnection = npcManager != null && !string.IsNullOrEmpty(npcManager.apiKey);
-            Debug.Log($"Player2STT: HasApiConnection check - npcManager: {npcManager != null}, apiKey: {!string.IsNullOrEmpty(npcManager?.apiKey)}, result: {hasConnection}");
+            bool hasManager = npcManager != null;
+            bool hasApiKey = !string.IsNullOrEmpty(npcManager?.apiKey);
+            bool skipAuth = hasManager && npcManager.ShouldSkipAuthentication();
+            
+            // Consider connected if we have API key OR if auth is bypassed for hosted scenarios
+            bool hasConnection = hasManager && (hasApiKey || skipAuth);
+            
+            Debug.Log($"Player2STT: HasApiConnection check - npcManager: {hasManager}, apiKey: {hasApiKey}, skipAuth: {skipAuth}, result: {hasConnection}");
             return hasConnection;
         }
 
@@ -344,11 +350,24 @@ namespace player2_sdk
         {
             if (sttEnabled)
             {
-                Debug.Log($"Player2STT: Starting STT. API key available: {!string.IsNullOrEmpty(npcManager?.apiKey)}");
-                if (!string.IsNullOrEmpty(npcManager?.apiKey))
+                bool hasApiKey = !string.IsNullOrEmpty(npcManager?.apiKey);
+                bool skipAuth = npcManager != null && npcManager.ShouldSkipAuthentication();
+                
+                Debug.Log($"Player2STT: Starting STT. API key available: {hasApiKey}, Skip auth (hosted): {skipAuth}");
+                
+                if (hasApiKey)
                 {
-                    Debug.Log("Player2STT: API key available");
+                    Debug.Log("Player2STT: Using API key authentication");
                 }
+                else if (skipAuth)
+                {
+                    Debug.Log("Player2STT: Using hosted authentication (no API key required)");
+                }
+                else
+                {
+                    Debug.Log("Player2STT: No authentication method available");
+                }
+                
                 StartSTTWeb();
             }
         }
@@ -455,10 +474,16 @@ namespace player2_sdk
                 };
 
                 // Add token to query parameters (works for both WebGL and native)
+                // Skip token requirement for hosted scenarios where authentication is bypassed
+                bool skipAuth = npcManager.ShouldSkipAuthentication();
                 if (!string.IsNullOrEmpty(npcManager.apiKey))
                 {
                     queryParams.Add($"token={npcManager.apiKey}");
-                    Debug.Log("Player2STT: Adding token to query params");
+                    Debug.Log("Player2STT: Adding token to query params for authenticated connection");
+                }
+                else if (skipAuth)
+                {
+                    Debug.Log("Player2STT: Skipping token authentication for hosted scenario (player2.game domain)");
                 }
                 else
                 {

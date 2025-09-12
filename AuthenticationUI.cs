@@ -135,6 +135,27 @@ namespace player2_sdk
         {
             if (isAuthenticating || npcManager == null) return;
 
+            // Skip authentication if running in WebGL on player2.game domain
+            Debug.Log("AuthenticationUI.CheckAuthenticationStatus: Checking if authentication should be skipped...");
+            if (npcManager.ShouldSkipAuthentication())
+            {
+                Debug.Log("AuthenticationUI.CheckAuthenticationStatus: Running on player2.game domain, skipping authentication entirely");
+                Debug.Log($"AuthenticationUI.CheckAuthenticationStatus: Base URL being used: {npcManager.GetBaseUrl()}");
+                
+                // Trigger NPC initialization with empty API key (auth headers not needed for hosted)
+                Debug.Log("AuthenticationUI.CheckAuthenticationStatus: Triggering NewApiKey with empty string for hosted auth bypass");
+                npcManager.NewApiKey.Invoke("");
+                
+                SetState(AuthenticationState.Success);
+                authenticationCompleted.Invoke();
+                Debug.Log("AuthenticationUI.CheckAuthenticationStatus: Authentication bypass completed successfully");
+                return;
+            }
+            else
+            {
+                Debug.Log("AuthenticationUI.CheckAuthenticationStatus: Authentication not being skipped, proceeding with normal flow");
+            }
+
             SetState(AuthenticationState.Checking);
             CreateUI();
             ShowOverlay();
@@ -471,6 +492,19 @@ namespace player2_sdk
 
         private async Task<bool> TryImmediateWebLogin()
         {
+            // Skip localhost authentication if running in WebGL on player2.game domain
+            Debug.Log("AuthenticationUI.TryImmediateWebLogin: Checking if localhost authentication should be skipped...");
+            if (npcManager.ShouldSkipAuthentication())
+            {
+                Debug.Log("AuthenticationUI.TryImmediateWebLogin: Running on player2.game domain, skipping localhost authentication");
+                Debug.Log($"AuthenticationUI.TryImmediateWebLogin: API requests will use: {npcManager.GetBaseUrl()}");
+                return true;
+            }
+            else
+            {
+                Debug.Log("AuthenticationUI.TryImmediateWebLogin: Not on player2.game domain, proceeding with localhost authentication");
+            }
+
             string url = $"http://localhost:4315/v1/login/web/{npcManager.clientId}";
             Debug.Log($"TryImmediateWebLogin: Attempting localhost auth at: {url}");
             

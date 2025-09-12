@@ -5,6 +5,7 @@ using UnityEditor;
 namespace player2_sdk
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using TMPro;
     using UnityEngine;
@@ -127,10 +128,16 @@ namespace player2_sdk
         public string GetBaseUrl()
         {
             // Check if we're running in WebGL and on player2.game domain
-            if (IsWebGLAndOnPlayer2GameDomain())
+            bool isPlayer2GameDomain = IsWebGLAndOnPlayer2GameDomain();
+            Debug.Log($"NpcManager.GetBaseUrl: WebGL on player2.game domain: {isPlayer2GameDomain}");
+            
+            if (isPlayer2GameDomain)
             {
+                Debug.Log($"NpcManager.GetBaseUrl: Using player2.game API URL: {BaseUrlPlayer2Game}");
                 return BaseUrlPlayer2Game;
             }
+            
+            Debug.Log($"NpcManager.GetBaseUrl: Using standard API URL: {BaseUrl}");
             return BaseUrl;
         }
 
@@ -139,7 +146,9 @@ namespace player2_sdk
         /// </summary>
         public bool ShouldSkipAuthentication()
         {
-            return IsWebGLAndOnPlayer2GameDomain();
+            bool shouldSkip = IsWebGLAndOnPlayer2GameDomain();
+            Debug.Log($"NpcManager.ShouldSkipAuthentication: {shouldSkip}");
+            return shouldSkip;
         }
 
         /// <summary>
@@ -148,36 +157,65 @@ namespace player2_sdk
         private bool IsWebGLAndOnPlayer2GameDomain()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.Log("IsWebGLAndOnPlayer2GameDomain: Running in WebGL build (not editor)");
             try
             {
-                string origin = GetWebGLOrigin();
-                return !string.IsNullOrEmpty(origin) && origin.Contains("player2.game");
+                // Use Unity's built-in Application.absoluteURL for reliable URL detection
+                string absoluteUrl = Application.absoluteURL;
+                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Retrieved absolute URL: '{absoluteUrl}'");
+                
+                if (string.IsNullOrEmpty(absoluteUrl))
+                {
+                    Debug.LogWarning("IsWebGLAndOnPlayer2GameDomain: Application.absoluteURL is null or empty");
+                    return false;
+                }
+                
+                // Parse the URL to get the host
+                System.Uri uri = new System.Uri(absoluteUrl);
+                string host = uri.Host;
+                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Parsed host: '{host}'");
+                
+                bool isPlayer2Game = host.Contains("player2.game");
+                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Contains 'player2.game': {isPlayer2Game}");
+                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Final result: {isPlayer2Game}");
+                
+                return isPlayer2Game;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Failed to detect WebGL domain: {ex.Message}");
+                Debug.LogWarning($"IsWebGLAndOnPlayer2GameDomain: Failed to detect WebGL domain: {ex.Message}");
+                Debug.LogWarning($"IsWebGLAndOnPlayer2GameDomain: Stack trace: {ex.StackTrace}");
                 return false;
             }
 #else
+            Debug.Log("IsWebGLAndOnPlayer2GameDomain: Not running in WebGL build (editor or other platform), returning false");
             return false;
 #endif
         }
 
-#if UNITY_WEBGL && !UNITY_EDITOR
-        [System.Runtime.InteropServices.DllImport("__Internal")]
-        private static extern string GetWebGLOrigin();
-#endif
 
         private void Awake()
         {
+            Debug.Log("=== NpcManager.Awake: Starting initialization ===");
+            Debug.Log($"NpcManager.Awake: Platform: {Application.platform}");
+            
 #if UNITY_EDITOR
+            Debug.Log("NpcManager.Awake: Running in Unity Editor");
             PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
 #endif
 
 #if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.Log("NpcManager.Awake: Running in WebGL build (not editor)");
             // For WebGL builds, we'll handle certificate validation differently
             // This is set at runtime, not in PlayerSettings
 #endif
+            
+            // Log domain detection status early
+            bool isOnPlayer2Game = IsWebGLAndOnPlayer2GameDomain();
+            Debug.Log($"NpcManager.Awake: On player2.game domain: {isOnPlayer2Game}");
+            Debug.Log($"NpcManager.Awake: Base URL will be: {GetBaseUrl()}");
+            Debug.Log($"NpcManager.Awake: Will skip authentication: {ShouldSkipAuthentication()}");
+            
             if (string.IsNullOrEmpty(clientId))
             {
                 Debug.LogError("NpcManager requires a Client ID to be set.", this);
@@ -203,7 +241,10 @@ namespace player2_sdk
                 Debug.Log("NpcManager.NewApiKey listener: API key set");
                 
                 // For WebGL on player2.game domain, pass empty API key to skip auth headers
-                string apiKeyForListener = ShouldSkipAuthentication() ? "" : apiKey;
+                bool skipAuth = ShouldSkipAuthentication();
+                string apiKeyForListener = skipAuth ? "" : apiKey;
+                Debug.Log($"NpcManager.NewApiKey listener: Skip authentication: {skipAuth}");
+                Debug.Log($"NpcManager.NewApiKey listener: Base URL: {GetBaseUrl()}");
                 Debug.Log($"NpcManager.NewApiKey listener: Passing to response listener: {(string.IsNullOrEmpty(apiKeyForListener) ? "empty (skipping auth)" : "API key")}");
                 
                 // Set the API key on the response listener
@@ -212,18 +253,27 @@ namespace player2_sdk
                 // Wait for the response listener to actually be connected before signaling ready
                 await WaitForResponseListenerReady();
                 
-                // Verify token works with health check before signaling ready
-                Debug.Log("NpcManager.NewApiKey listener: Response listener connected, performing health check...");
-                bool healthCheckPassed = await TokenValidator.ValidateTokenAsync(apiKey, this);
-                
-                if (healthCheckPassed)
+                // Skip health check if authentication was bypassed (hosted scenario)
+                if (skipAuth && string.IsNullOrEmpty(apiKey))
                 {
-                    Debug.Log("NpcManager.NewApiKey listener: Health check passed, signaling API token ready");
+                    Debug.Log("NpcManager.NewApiKey listener: Authentication bypassed for hosted scenario, skipping health check");
                     apiTokenReady.Invoke();
                 }
                 else
                 {
-                    Debug.LogError("NpcManager.NewApiKey listener: Health check failed, token is not working properly. Not signaling ready.");
+                    // Verify token works with health check before signaling ready
+                    Debug.Log("NpcManager.NewApiKey listener: Response listener connected, performing health check...");
+                    bool healthCheckPassed = await TokenValidator.ValidateTokenAsync(apiKey, this);
+                    
+                    if (healthCheckPassed)
+                    {
+                        Debug.Log("NpcManager.NewApiKey listener: Health check passed, signaling API token ready");
+                        apiTokenReady.Invoke();
+                    }
+                    else
+                    {
+                        Debug.LogError("NpcManager.NewApiKey listener: Health check failed, token is not working properly. Not signaling ready.");
+                    }
                 }
             });
 
@@ -236,6 +286,9 @@ namespace player2_sdk
             });
             
             Debug.Log($"NpcManager initialized with clientId: {clientId}");
+            
+            // Automatically start authentication if not already started
+            StartCoroutine(AutoStartAuthentication());
         }
 
         private async Awaitable WaitForResponseListenerReady()
@@ -260,6 +313,24 @@ namespace player2_sdk
             {
                 Debug.Log($"Response listener connected after {attempts * 100}ms");
             }
+        }
+        
+        private System.Collections.IEnumerator AutoStartAuthentication()
+        {
+            // Wait a few frames for other components to initialize
+            yield return new WaitForSecondsRealtime(0.1f);
+            
+            // Check if AuthenticationUI already exists
+            AuthenticationUI existingAuth = FindObjectOfType<AuthenticationUI>();
+            if (existingAuth != null)
+            {
+                Debug.Log("NpcManager.AutoStartAuthentication: AuthenticationUI already exists, not auto-creating");
+                yield break;
+            }
+            
+            // Auto-setup authentication
+            Debug.Log("NpcManager.AutoStartAuthentication: No AuthenticationUI found, auto-creating one");
+            AuthenticationUI.Setup(this);
         }
 
 
