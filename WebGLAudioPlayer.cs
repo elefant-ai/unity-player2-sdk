@@ -1,3 +1,7 @@
+using System;
+using System.Runtime.InteropServices;
+using UnityEngine;
+
 #if UNITY_WEBGL
 namespace player2_sdk
 {
@@ -33,7 +37,8 @@ namespace player2_sdk
             int commaIndex = dataUrl.IndexOf(',');
             if (commaIndex == -1 || commaIndex == dataUrl.Length - 1)
             {
-                Debug.LogError($"Cannot play audio for {identifier}: invalid data URL format (missing comma or no data after comma)");
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: invalid data URL format (missing comma or no data after comma)");
                 yield break;
             }
 
@@ -60,7 +65,7 @@ namespace player2_sdk
             {
                 // Fix Base64 padding if needed
                 string paddedBase64 = FixBase64Padding(base64String);
-                
+
                 // Decode to bytes
                 audioBytes = Convert.FromBase64String(paddedBase64);
             }
@@ -68,7 +73,8 @@ namespace player2_sdk
             {
                 // Log additional context for Base64 decoding failures
                 string base64Preview = base64String.Length > 50 ? base64String.Substring(0, 50) + "..." : base64String;
-                Debug.LogError($"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}. Base64 data length: {base64String.Length}, Preview: {base64Preview}");
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}. Base64 data length: {base64String.Length}, Preview: {base64Preview}");
                 yield break;
             }
 
@@ -82,7 +88,8 @@ namespace player2_sdk
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Cannot play audio for {identifier}: failed to write audio data to temp file: {ex.Message}");
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: failed to write audio data to temp file: {ex.Message}");
                 yield break;
             }
 
@@ -104,7 +111,8 @@ namespace player2_sdk
                         }
                         else
                         {
-                            Debug.LogError($"Cannot play audio for {identifier}: failed to create AudioClip from downloaded data");
+                            Debug.LogError(
+                                $"Cannot play audio for {identifier}: failed to create AudioClip from downloaded data");
                         }
                     }
                     catch (Exception ex)
@@ -133,7 +141,8 @@ namespace player2_sdk
             {
                 Debug.LogWarning($"Failed to cleanup temporary audio file for {identifier}: {ex.Message}");
             }
-#else
+        }
+        #else
             // For actual WebGL builds, use JavaScript interop to play audio directly in browser
             try
             {
@@ -149,14 +158,9 @@ namespace player2_sdk
             {
                 Debug.LogError($"Cannot play audio for {identifier}: JavaScript interop failed: {ex.Message}");
             }
-#endif
         }
 
-        /// <summary>
-        /// Play audio using JavaScript interop (WebGL only)
-        /// </summary>
-        [DllImport("__Internal")]
-        private static extern void PlayWebGLAudio(string identifier, string base64Audio);
+
 
         /// <summary>
         /// Helper method to play audio via JavaScript
@@ -169,9 +173,13 @@ namespace player2_sdk
                 audioSource.Stop();
                 audioSource.clip = null;
             }
-            
-            PlayWebGLAudio(identifier, base64Audio);
+
+            byte[] audio = Convert.FromBase64String(base64Audio);
+
+            audioSource.clip = AudioClip.Create($"Audio_{identifier}", audio.Length / 2, 1, 44100, false);
+            audioSource.Play();
         }
+#endif
 
         /// <summary>
         /// Converts byte array to float array for AudioClip

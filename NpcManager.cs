@@ -102,6 +102,7 @@ namespace player2_sdk
         };
 
         public string apiKey = null;
+        public string GetApiKey() => apiKey;
         public UnityEvent spawnNpcs = new UnityEvent();
         public UnityEvent<string> NewApiKey = new UnityEvent<string>();
         public UnityEvent apiTokenReady = new UnityEvent();
@@ -230,7 +231,7 @@ namespace player2_sdk
             }
 
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
-            _responseListener._baseUrl = GetBaseUrl();
+            _responseListener.BaseUrl = GetBaseUrl();
 
             _responseListener.SetReconnectionSettings(5, 2.5f);
 
@@ -248,7 +249,7 @@ namespace player2_sdk
                 Debug.Log($"NpcManager.NewApiKey listener: Passing to response listener: {(string.IsNullOrEmpty(apiKeyForListener) ? "empty (skipping auth)" : "API key")}");
                 
                 // Set the API key on the response listener
-                _responseListener.newApiKey.Invoke(apiKeyForListener);
+                _responseListener.InvokeNewApiKey(apiKeyForListener);
                 
                 // Wait for the response listener to actually be connected before signaling ready
                 await WaitForResponseListenerReady();
@@ -339,7 +340,7 @@ namespace player2_sdk
         {
             if (string.IsNullOrEmpty(clientId))
             {
-                Debug.LogError("NpcManager requires a Game ID to be set.", this);
+                Debug.LogError("NpcManager requires a Client ID to be set.", this);
             }
         }
 

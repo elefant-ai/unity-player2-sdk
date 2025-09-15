@@ -8,9 +8,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NativeWebSocket;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using uMicrophoneWebGL;
+#endif
 
 namespace player2_sdk
 {
+
+
     /// <summary>
     /// WebSocket abstraction for cross-platform compatibility
     /// </summary>
@@ -143,9 +148,8 @@ namespace player2_sdk
         private int lastMicrophonePosition;
         private Coroutine audioStreamCoroutine;
         private Coroutine heartbeatCoroutine;
-
 #if UNITY_WEBGL && !UNITY_EDITOR
-        private WebGLMicrophoneManager webGLMicManager;
+        private MicrophoneWebGL webGLMicManager;
 #endif
         private CancellationTokenSource connectionCts;
         
@@ -238,7 +242,7 @@ namespace player2_sdk
         /// Check if Speech-to-Text is supported on the current platform
         /// </summary>
 #if UNITY_WEBGL && !UNITY_EDITOR
-        public bool IsSTTSupported => webGLMicManager != null && webGLMicManager.IsInitialized;
+        public bool IsSTTSupported => webGLMicManager != null && webGLMicManager.isValid;
 #else
         public bool IsSTTSupported => true;
 #endif
@@ -246,8 +250,8 @@ namespace player2_sdk
         #endregion
 
         #region WebGL Methods
-
 #if UNITY_WEBGL && !UNITY_EDITOR
+
         /// <summary>
         /// Callback when WebGL microphone is initialized
         /// </summary>
@@ -305,13 +309,12 @@ namespace player2_sdk
                 Debug.LogError("Player2STT requires an NpcManager reference. Please assign it in the inspector.", this);
                 return;
             }
-
 #if UNITY_WEBGL && !UNITY_EDITOR
+
             // Initialize WebGL microphone manager (only in actual WebGL builds)
-            webGLMicManager = gameObject.AddComponent<WebGLMicrophoneManager>();
-            webGLMicManager.OnAudioDataReceived += OnWebGLAudioDataReceived;
-            webGLMicManager.OnInitialized += OnWebGLMicInitialized;
-            webGLMicManager.Initialize();
+            webGLMicManager = gameObject.AddComponent<MicrophoneWebGL>();
+            webGLMicManager.dataEvent.AddListener(OnWebGLAudioDataReceived);
+            webGLMicManager.startEvent.AddListener(() =>  OnWebGLMicInitialized(true));
 #else
             // Use regular Unity microphone (in editor or non-WebGL builds)
             if (Microphone.devices.Length > 0)
@@ -328,7 +331,7 @@ namespace player2_sdk
         private bool HasApiConnection()
         {
             bool hasManager = npcManager != null;
-            bool hasApiKey = !string.IsNullOrEmpty(npcManager?.apiKey);
+            bool hasApiKey = !string.IsNullOrEmpty(npcManager?.GetApiKey());
             bool skipAuth = hasManager && npcManager.ShouldSkipAuthentication();
             
             // Consider connected if we have API key OR if auth is bypassed for hosted scenarios
@@ -350,7 +353,7 @@ namespace player2_sdk
         {
             if (sttEnabled)
             {
-                bool hasApiKey = !string.IsNullOrEmpty(npcManager?.apiKey);
+                bool hasApiKey = !string.IsNullOrEmpty(npcManager?.GetApiKey());
                 bool skipAuth = npcManager != null && npcManager.ShouldSkipAuthentication();
                 
                 Debug.Log($"Player2STT: Starting STT. API key available: {hasApiKey}, Skip auth (hosted): {skipAuth}");
@@ -476,10 +479,10 @@ namespace player2_sdk
                 // Add token to query parameters (works for both WebGL and native)
                 // Skip token requirement for hosted scenarios where authentication is bypassed
                 bool skipAuth = npcManager.ShouldSkipAuthentication();
-                if (!string.IsNullOrEmpty(npcManager.apiKey))
+                if (!string.IsNullOrEmpty(npcManager.GetApiKey()))
                 {
-                    queryParams.Add($"token={npcManager.apiKey}");
-                    Debug.Log("Player2STT: Adding token to query params for authenticated connection");
+                    queryParams.Add($"token={npcManager.GetApiKey()}");
+                    Debug.Log($"Player2STT: Adding token to query params: {npcManager.GetApiKey().Substring(0, Math.Min(10, npcManager.GetApiKey().Length))}...");
                 }
                 else if (skipAuth)
                 {
@@ -511,9 +514,9 @@ namespace player2_sdk
 
                     // Start microphone only after WebSocket is connected
 #if UNITY_WEBGL && !UNITY_EDITOR
-                    if (webGLMicManager != null && webGLMicManager.IsInitialized && audioStreamRunning)
+                    if (webGLMicManager != null && webGLMicManager.isValid && audioStreamRunning && ! webGLMicManager.isRecording)
                     {
-                        webGLMicManager.StartRecording();
+                        webGLMicManager.Begin();
                     }
 #endif
                 };
@@ -618,7 +621,7 @@ namespace player2_sdk
 #if UNITY_WEBGL && !UNITY_EDITOR
             // For WebGL, microphone recording is started when WebSocket connects
             // This prevents sending audio data before the connection is ready
-            if (webGLMicManager != null && webGLMicManager.IsInitialized)
+            if (webGLMicManager != null && webGLMicManager.isValid)
             {
                 // WebGL microphone will be started when WebSocket OnOpen event fires
                 Debug.Log("Player2STT: WebGL microphone ready, will start when WebSocket connects");
@@ -654,9 +657,9 @@ namespace player2_sdk
         private void StopMicrophone()
         {
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (webGLMicManager != null && webGLMicManager.IsRecording)
+            if (webGLMicManager != null && webGLMicManager.isRecording)
             {
-                webGLMicManager.StopRecording();
+                webGLMicManager.End();
             }
 #else
             if (Microphone.IsRecording(microphoneDevice))
@@ -867,9 +870,9 @@ namespace player2_sdk
             
             // Stop microphone but keep audioStreamRunning flag for reconnection
 #if UNITY_WEBGL && !UNITY_EDITOR
-            if (webGLMicManager != null && webGLMicManager.IsRecording)
+            if (webGLMicManager != null && webGLMicManager.isRecording)
             {
-                webGLMicManager.StopRecording();
+                webGLMicManager.End();
             }
 #else
             if (Microphone.IsRecording(microphoneDevice))
