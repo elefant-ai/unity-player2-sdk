@@ -123,20 +123,9 @@ namespace player2_sdk
         }
 
         private const string BaseUrl = "https://api.player2.game/v1";
-        private const string BaseUrlPlayer2Game = "https://games.player2.game/_api/v1";
 
         public string GetBaseUrl()
         {
-            // Check if we're running in WebGL and on player2.game domain
-            bool isPlayer2GameDomain = IsWebGLAndOnPlayer2GameDomain();
-            Debug.Log($"NpcManager.GetBaseUrl: WebGL on player2.game domain: {isPlayer2GameDomain}");
-            
-            if (isPlayer2GameDomain)
-            {
-                Debug.Log($"NpcManager.GetBaseUrl: Using player2.game API URL: {BaseUrlPlayer2Game}");
-                return BaseUrlPlayer2Game;
-            }
-            
             Debug.Log($"NpcManager.GetBaseUrl: Using standard API URL: {BaseUrl}");
             return BaseUrl;
         }
@@ -175,8 +164,9 @@ namespace player2_sdk
                 string host = uri.Host;
                 Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Parsed host: '{host}'");
                 
-                bool isPlayer2Game = host.Contains("player2.game");
-                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Contains 'player2.game': {isPlayer2Game}");
+                bool isPlayer2Game = host.Equals("player2.game", StringComparison.OrdinalIgnoreCase) || 
+                                     host.EndsWith(".player2.game", StringComparison.OrdinalIgnoreCase);
+                Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Is legitimate player2.game domain: {isPlayer2Game}");
                 Debug.Log($"IsWebGLAndOnPlayer2GameDomain: Final result: {isPlayer2Game}");
                 
                 return isPlayer2Game;
