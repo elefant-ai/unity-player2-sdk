@@ -80,10 +80,22 @@ namespace player2_sdk
         [Tooltip("If true, the NPCs will use Text-to-Speech (TTS) to speak their responses. Requires a valid voice_id in the tts.voice_ids configuration.")]
         public bool TTS = false;
         [SerializeField]
+        [InspectorName("TTS Streaming")]
+        [Tooltip("If true, stream TTS audio (PCM16) in real-time for NPC responses.")]
+        public bool TTSStreaming = true;
+        [SerializeField]
         [Tooltip("If true, the NPCs will keep track of game state information in the conversation history.")]
         public bool keep_game_state = false;
 
         private Player2NpcResponseListener _responseListener;
+
+        private Dictionary<string, GameObject> _npcIdToObject = new Dictionary<string, GameObject>();
+
+        [Header("Debug")]
+        [SerializeField]
+        [InspectorName("Dump Payload Files")] 
+        [Tooltip("If true, write SSE payloads to /tmp/Player2SDK_Payloads for debugging.")]
+        public bool DebugDumpPayloads = false;
 
         [Header("Functions")] [SerializeField] public List<Function> functions;
 
@@ -221,6 +233,8 @@ namespace player2_sdk
 
             _responseListener.JsonSerializerSettings = JsonSerializerSettings;
             _responseListener._baseUrl = GetBaseUrl();
+            _responseListener._enableTtsStreaming = TTSStreaming;
+            _responseListener._debugDumpPayloads = DebugDumpPayloads;
 
             _responseListener.SetReconnectionSettings(5, 2.5f);
 
@@ -362,6 +376,9 @@ namespace player2_sdk
 
             _responseListener.RegisterNpc(id, onNpcApiResponse);
 
+            // Track NPC object for audio streaming
+            _npcIdToObject[id] = npcObject;
+
             // Ensure listener is running after registering
             if (!_responseListener.IsListening)
             {
@@ -399,8 +416,8 @@ namespace player2_sdk
                     }
                 }
 
-                // Handle audio playback if audio data is available
-                if (response.audio != null && !string.IsNullOrEmpty(response.audio.data))
+                // Handle audio playback if audio data is available (skip when TTS streaming is enabled)
+                if (!TTSStreaming && response.audio != null && !string.IsNullOrEmpty(response.audio.data))
                 {
                     // Log detailed audio data information for troubleshooting
                     string audioDataPreview = response.audio.data.Length > 100 
@@ -471,6 +488,11 @@ namespace player2_sdk
             {
                 _responseListener.UnregisterNpc(id);
             }
+
+            if (_npcIdToObject.ContainsKey(id))
+            {
+                _npcIdToObject.Remove(id);
+            }
         }
 
         public bool IsListenerActive()
@@ -515,6 +537,22 @@ namespace player2_sdk
                 Debug.Log(
                     $"Response listener status: IsListening={_responseListener.IsListening}");
             }
+        }
+
+        public AudioSource GetAudioSourceForNpc(string id)
+        {
+            if (!_npcIdToObject.TryGetValue(id, out var npcObject) || npcObject == null)
+            {
+                Debug.LogWarning($"GetAudioSourceForNpc: NPC object not found for id {id}");
+                return null;
+            }
+
+            var audioSource = npcObject.GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = npcObject.AddComponent<AudioSource>();
+            }
+            return audioSource;
         }
     }
 
