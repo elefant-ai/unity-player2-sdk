@@ -6,16 +6,10 @@
     "description": "Easily create seamless AI game experiences, for free!",
     "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.endel.nativewebsocket": "https://github.com/endel/NativeWebSocket.git#upm"
+        "com.endel.nativewebsocket": "git://github.com/endel/NativeWebSocket.git#upm"
     },
     "license": "MIT",
     "documentationUrl": "https://github.com/elefant-ai/unity-player2-sdk",
     "author": "Edvin Bryntesson <edvin@elefant.gg> (https://player2.game)",
-    "scopedRegistries": [
-        {
-            "name": "npmjs",
-            "url": "https://registry.npmjs.org/",
-            "scopes": ["com.endel"]
-        }
-    ]
+  
 }
