@@ -142,11 +142,27 @@ namespace player2_sdk
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (property.propertyType != SerializedPropertyType.String)
+            string s = property.stringValue.Clone() as string;
+            
+            if (property.propertyType != SerializedPropertyType.String )
             {
                 EditorGUI.PropertyField(position, property, label);
                 return;
             }
+
+            if ((TTSVoiceManager.CachedVoices?.voices.Count ?? 0) == 0 && !TTSVoiceManager.IsFetching)
+            {
+                if (string.IsNullOrEmpty(property.stringValue))
+                {
+                    property.stringValue = EditorGUI.TextField(position, label.text, "");
+                }
+                else
+                {
+                    property.stringValue = EditorGUI.TextField(position, label.text, property.stringValue);
+                }
+                return;
+            }
+           
 
             EditorGUI.BeginProperty(position, label, property);
 

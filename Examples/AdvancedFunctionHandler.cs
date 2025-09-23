@@ -1,34 +1,47 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
 namespace player2_sdk
 {
-    using System;
-    using System.Collections.Generic;
-    using UnityEngine;
-    using Newtonsoft.Json.Linq;
-
     /// <summary>
-    /// Advanced example of function call handling with various patterns and best practices
+    ///     Advanced example of function call handling with various patterns and best practices
     /// </summary>
     [Serializable]
     public class AdvancedFunctionHandler : MonoBehaviour
     {
         // Configuration
-        [Header("Function Call Settings")]
-        [SerializeField] private bool enableDebugLogging = true;
+        [Header("Function Call Settings")] [SerializeField]
+        private bool enableDebugLogging = true;
+
         [SerializeField] private float defaultTeleportDelay = 0.5f;
 
         // References for gameplay integration
-        [Header("Gameplay References")]
-        [SerializeField] private GameObject flameEffectPrefab;
+        [Header("Gameplay References")] [SerializeField]
+        private GameObject flameEffectPrefab;
+
         [SerializeField] private GameObject itemSpawnPoint;
         [SerializeField] private AudioClip teleportSound;
         [SerializeField] private AudioClip itemSpawnSound;
 
         // State tracking
-        private Dictionary<string, int> functionCallCounts = new Dictionary<string, int>();
-        private List<GameObject> spawnedObjects = new List<GameObject>();
+        private Dictionary<string, int> functionCallCounts = new();
+        private List<GameObject> spawnedObjects = new();
+
+        #region Unity Lifecycle
+
+        private void OnDestroy()
+        {
+            CleanupSpawnedObjects();
+        }
+
+        #endregion
 
         /// <summary>
-        /// Main function call handler - called by NpcManager when NPC executes a function
+        ///     Main function call handler - called by NpcManager when NPC executes a function
         /// </summary>
         public void HandleFunctionCall(FunctionCall functionCall)
         {
@@ -73,7 +86,8 @@ namespace player2_sdk
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[AdvancedFunctionHandler] Error processing function '{functionCall.name}': {ex.Message}");
+                Debug.LogError(
+                    $"[AdvancedFunctionHandler] Error processing function '{functionCall.name}': {ex.Message}");
                 // Could send error feedback to NPC here if needed
             }
         }
@@ -83,14 +97,12 @@ namespace player2_sdk
         private void HandleFlameFunction(FunctionCall functionCall)
         {
             // Extract parameters with defaults
-            float radius = GetArgumentValue(functionCall.arguments, "radius", 3.0f);
-            float duration = GetArgumentValue(functionCall.arguments, "duration", 2.0f);
-            string color = GetArgumentValue(functionCall.arguments, "color", "red");
+            var radius = GetArgumentValue(functionCall.arguments, "radius", 3.0f);
+            var duration = GetArgumentValue(functionCall.arguments, "duration", 2.0f);
+            var color = GetArgumentValue(functionCall.arguments, "color", "red");
 
             if (enableDebugLogging)
-            {
                 Debug.Log($"[Flame] Creating flame effect: radius={radius}, duration={duration}, color={color}");
-            }
 
             // Spawn flame effect
             SpawnFlameEffect(functionCall.aiObject.transform.position, radius, duration, color);
@@ -99,17 +111,16 @@ namespace player2_sdk
         private void HandleTeleportFunction(FunctionCall functionCall)
         {
             // Extract position coordinates
-            float x = GetArgumentValue(functionCall.arguments, "x", functionCall.aiObject.transform.position.x);
-            float y = GetArgumentValue(functionCall.arguments, "y", functionCall.aiObject.transform.position.y);
-            float z = GetArgumentValue(functionCall.arguments, "z", functionCall.aiObject.transform.position.z);
-            bool instant = GetArgumentValue(functionCall.arguments, "instant", false);
+            var x = GetArgumentValue(functionCall.arguments, "x", functionCall.aiObject.transform.position.x);
+            var y = GetArgumentValue(functionCall.arguments, "y", functionCall.aiObject.transform.position.y);
+            var z = GetArgumentValue(functionCall.arguments, "z", functionCall.aiObject.transform.position.z);
+            var instant = GetArgumentValue(functionCall.arguments, "instant", false);
 
-            Vector3 targetPosition = new Vector3(x, y, z);
+            var targetPosition = new Vector3(x, y, z);
 
             if (enableDebugLogging)
-            {
-                Debug.Log($"[Teleport] Moving NPC from {functionCall.aiObject.transform.position} to {targetPosition}, instant={instant}");
-            }
+                Debug.Log(
+                    $"[Teleport] Moving NPC from {functionCall.aiObject.transform.position} to {targetPosition}, instant={instant}");
 
             if (instant)
             {
@@ -124,22 +135,21 @@ namespace player2_sdk
 
         private void HandleSpawnItemFunction(FunctionCall functionCall)
         {
-            string itemName = GetArgumentValue(functionCall.arguments, "item_name", "mystery_box");
-            int quantity = GetArgumentValue(functionCall.arguments, "quantity", 1);
-            float spawnRadius = GetArgumentValue(functionCall.arguments, "spawn_radius", 2.0f);
+            var itemName = GetArgumentValue(functionCall.arguments, "item_name", "mystery_box");
+            var quantity = GetArgumentValue(functionCall.arguments, "quantity", 1);
+            var spawnRadius = GetArgumentValue(functionCall.arguments, "spawn_radius", 2.0f);
 
-            Vector3 spawnCenter = itemSpawnPoint != null ?
-                itemSpawnPoint.transform.position :
-                functionCall.aiObject.transform.position;
+            var spawnCenter = itemSpawnPoint != null
+                ? itemSpawnPoint.transform.position
+                : functionCall.aiObject.transform.position;
 
             if (enableDebugLogging)
-            {
-                Debug.Log($"[SpawnItem] Spawning {quantity}x {itemName} around {spawnCenter} within radius {spawnRadius}");
-            }
+                Debug.Log(
+                    $"[SpawnItem] Spawning {quantity}x {itemName} around {spawnCenter} within radius {spawnRadius}");
 
-            for (int i = 0; i < quantity; i++)
+            for (var i = 0; i < quantity; i++)
             {
-                Vector3 spawnPosition = spawnCenter + UnityEngine.Random.insideUnitSphere * spawnRadius;
+                var spawnPosition = spawnCenter + Random.insideUnitSphere * spawnRadius;
                 spawnPosition.y = Mathf.Max(spawnPosition.y, 0); // Keep above ground
 
                 SpawnItem(itemName, spawnPosition);
@@ -150,13 +160,10 @@ namespace player2_sdk
 
         private void HandleHealFunction(FunctionCall functionCall)
         {
-            float healAmount = GetArgumentValue(functionCall.arguments, "amount", 25.0f);
-            string targetType = GetArgumentValue(functionCall.arguments, "target", "self");
+            var healAmount = GetArgumentValue(functionCall.arguments, "amount", 25.0f);
+            var targetType = GetArgumentValue(functionCall.arguments, "target", "self");
 
-            if (enableDebugLogging)
-            {
-                Debug.Log($"[Heal] Healing {targetType} for {healAmount} HP");
-            }
+            if (enableDebugLogging) Debug.Log($"[Heal] Healing {targetType} for {healAmount} HP");
 
             // Implement healing logic here
             ApplyHealing(functionCall.aiObject, healAmount, targetType);
@@ -167,28 +174,23 @@ namespace player2_sdk
 
         private void HandleAttackFunction(FunctionCall functionCall)
         {
-            string attackType = GetArgumentValue(functionCall.arguments, "type", "melee");
-            float damage = GetArgumentValue(functionCall.arguments, "damage", 10.0f);
-            float range = GetArgumentValue(functionCall.arguments, "range", 5.0f);
+            var attackType = GetArgumentValue(functionCall.arguments, "type", "melee");
+            var damage = GetArgumentValue(functionCall.arguments, "damage", 10.0f);
+            var range = GetArgumentValue(functionCall.arguments, "range", 5.0f);
 
-            if (enableDebugLogging)
-            {
-                Debug.Log($"[Attack] {attackType} attack: damage={damage}, range={range}");
-            }
+            if (enableDebugLogging) Debug.Log($"[Attack] {attackType} attack: damage={damage}, range={range}");
 
             PerformAttack(functionCall.aiObject, attackType, damage, range);
         }
 
         private void HandleQuestUpdateFunction(FunctionCall functionCall)
         {
-            string questId = GetArgumentValue(functionCall.arguments, "quest_id", "");
-            string updateType = GetArgumentValue(functionCall.arguments, "update_type", "progress");
-            int progressAmount = GetArgumentValue(functionCall.arguments, "progress_amount", 1);
+            var questId = GetArgumentValue(functionCall.arguments, "quest_id", "");
+            var updateType = GetArgumentValue(functionCall.arguments, "update_type", "progress");
+            var progressAmount = GetArgumentValue(functionCall.arguments, "progress_amount", 1);
 
             if (enableDebugLogging)
-            {
                 Debug.Log($"[QuestUpdate] Updating quest {questId}: {updateType} by {progressAmount}");
-            }
 
             UpdateQuestProgress(questId, updateType, progressAmount);
         }
@@ -198,10 +200,7 @@ namespace player2_sdk
             Debug.LogWarning($"[AdvancedFunctionHandler] Unknown function: {functionCall.name}");
 
             // Log all arguments for debugging
-            foreach (var arg in functionCall.arguments)
-            {
-                Debug.Log($"  {arg.Key}: {arg.Value} ({arg.Value?.Type})");
-            }
+            foreach (var arg in functionCall.arguments) Debug.Log($"  {arg.Key}: {arg.Value} ({arg.Value?.Type})");
 
             // Could implement fallback behavior or send error message to NPC
         }
@@ -211,57 +210,49 @@ namespace player2_sdk
         #region Helper Methods
 
         /// <summary>
-        /// Generic method to safely extract argument values from JObject with type conversion
+        ///     Generic method to safely extract argument values from JObject with type conversion
         /// </summary>
         private T GetArgumentValue<T>(JObject arguments, string key, T defaultValue)
         {
-            if (arguments.TryGetValue(key, out JToken token))
-            {
+            if (arguments.TryGetValue(key, out var token))
                 try
                 {
                     return token.Value<T>();
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[AdvancedFunctionHandler] Failed to convert argument '{key}' to {typeof(T).Name}: {ex.Message}");
+                    Debug.LogWarning(
+                        $"[AdvancedFunctionHandler] Failed to convert argument '{key}' to {typeof(T).Name}: {ex.Message}");
                     return defaultValue;
                 }
-            }
 
             if (enableDebugLogging)
-            {
-                Debug.Log($"[AdvancedFunctionHandler] Using default value for missing argument '{key}': {defaultValue}");
-            }
+                Debug.Log(
+                    $"[AdvancedFunctionHandler] Using default value for missing argument '{key}': {defaultValue}");
 
             return defaultValue;
         }
 
         /// <summary>
-        /// Track function call statistics
+        ///     Track function call statistics
         /// </summary>
         private void LogFunctionCallCount(string functionName)
         {
-            if (!functionCallCounts.ContainsKey(functionName))
-            {
-                functionCallCounts[functionName] = 0;
-            }
+            if (!functionCallCounts.ContainsKey(functionName)) functionCallCounts[functionName] = 0;
 
             functionCallCounts[functionName]++;
             Debug.Log($"[Stats] Function '{functionName}' called {functionCallCounts[functionName]} times");
         }
 
         /// <summary>
-        /// Clean up spawned objects (useful for scene transitions)
+        ///     Clean up spawned objects (useful for scene transitions)
         /// </summary>
         public void CleanupSpawnedObjects()
         {
             foreach (var obj in spawnedObjects)
-            {
                 if (obj != null)
-                {
                     Destroy(obj);
-                }
-            }
+
             spawnedObjects.Clear();
         }
 
@@ -273,27 +264,26 @@ namespace player2_sdk
         {
             if (flameEffectPrefab != null)
             {
-                GameObject flame = Instantiate(flameEffectPrefab, position, Quaternion.identity);
+                var flame = Instantiate(flameEffectPrefab, position, Quaternion.identity);
                 flame.transform.localScale = Vector3.one * radius;
 
                 // Set color based on parameter
                 var renderer = flame.GetComponent<Renderer>();
                 if (renderer != null)
-                {
                     switch (color.ToLower())
                     {
                         case "blue": renderer.material.color = Color.blue; break;
                         case "green": renderer.material.color = Color.green; break;
-                        case "red": default: renderer.material.color = Color.red; break;
+                        case "red":
+                        default: renderer.material.color = Color.red; break;
                     }
-                }
 
                 Destroy(flame, duration);
                 spawnedObjects.Add(flame);
             }
         }
 
-        private System.Collections.IEnumerator TeleportWithDelay(GameObject npc, Vector3 targetPosition)
+        private IEnumerator TeleportWithDelay(GameObject npc, Vector3 targetPosition)
         {
             // Create teleport effect at start position
             CreateTeleportEffect(npc.transform.position);
@@ -311,7 +301,7 @@ namespace player2_sdk
         private void SpawnItem(string itemName, Vector3 position)
         {
             // Implement your item spawning logic here
-            GameObject item = new GameObject($"Spawned_{itemName}");
+            var item = new GameObject($"Spawned_{itemName}");
             item.transform.position = position;
             item.AddComponent<MeshRenderer>(); // Add basic visual representation
 
@@ -353,27 +343,12 @@ namespace player2_sdk
 
         private void PlayTeleportSound()
         {
-            if (teleportSound != null)
-            {
-                AudioSource.PlayClipAtPoint(teleportSound, Camera.main.transform.position);
-            }
+            if (teleportSound != null) AudioSource.PlayClipAtPoint(teleportSound, Camera.main.transform.position);
         }
 
         private void PlayItemSpawnSound()
         {
-            if (itemSpawnSound != null)
-            {
-                AudioSource.PlayClipAtPoint(itemSpawnSound, Camera.main.transform.position);
-            }
-        }
-
-        #endregion
-
-        #region Unity Lifecycle
-
-        private void OnDestroy()
-        {
-            CleanupSpawnedObjects();
+            if (itemSpawnSound != null) AudioSource.PlayClipAtPoint(itemSpawnSound, Camera.main.transform.position);
         }
 
         #endregion

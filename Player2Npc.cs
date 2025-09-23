@@ -39,17 +39,40 @@ namespace player2_sdk
         [CanBeNull] public string tts; // Nullable by convention / attribute
     }
 
+    public class CustomNpcOptions
+    {
+
+        
+
+    }
+
     public class Player2Npc : MonoBehaviour
     {
         [Header("State Config")]
         [SerializeField]
         private NpcManager npcManager;
 
+
         [Header("NPC Configuration")]
+
+
+        [SerializeField]
+        public bool customNpc = false;
+
+
+        [CustomNpcChecker]
+        private UnityEvent<Character, UnityEvent<Character, string>> OnNewCustomCharacter = new UnityEvent<Character, UnityEvent<Character, string>>();
+
+        [CustomNpcChecker]
+        private UnityEvent<Character, string> OnChangedCustomCharacter = new UnityEvent<Character, string>();
+
+        [RemoveIfCustomNpc]
         [SerializeField]
         private string shortName = "Victor";
 
+        [RemoveIfCustomNpc]
         [SerializeField] private string fullName = "Victor J. Johnson";
+        [RemoveIfCustomNpc]
 
         [Tooltip("A description of the NPC, written in first person, used for the LLM to understand the character better.")]
         [SerializeField] private string characterDescription = "I am crazed scientist on the hunt for gold!";
@@ -58,14 +81,14 @@ namespace player2_sdk
         [SerializeField] private string systemPrompt = "Victor is a scientist obsessed with finding gold.";
 
         // Use the TTSVoice attribute in Editor for dropdown functionality
-#if UNITY_EDITOR
+
+        [RemoveIfCustomNpc]
         [Tooltip("The voice ID to use for TTS. Click 'Fetch' to load available voices from Player2 App.")]
+#if UNITY_EDITOR
         [TTSVoice]
-        [SerializeField] public string voiceId;
-#else
-        [Tooltip("The voice ID to use for TTS. Can be found at localhost:4315/v1/tts/voices")]
-        [SerializeField] public string voiceId;
 #endif
+        [SerializeField] public string voiceId;
+
 
         [Header("Events")]
         [SerializeField] private TMP_InputField inputField;
@@ -101,6 +124,41 @@ namespace player2_sdk
             if (npcManager == null)
             {
                 Debug.LogError("Player2Npc requires an NpcManager reference. Please assign it in the inspector.", this);
+            }
+            else if (customNpc)
+            {
+                OnNewCustomCharacter.AddListener(async (character, onReceivedCharacter) =>
+                {
+                    shortName = character.short_name;
+                    fullName = character.name;
+                    characterDescription = character.description;
+                    voiceId = character.voice_ids.Count > 0 ? character.voice_ids[0] : voiceId;
+                    if (!string.IsNullOrEmpty(npcManager.apiKey))
+                    {
+                        await SpawnNpcAsync();
+                    }
+                    else
+                    {
+                        npcManager.NewApiKey.AddListener(async (_) =>
+                        {
+                            await SpawnNpcAsync();
+                        });
+                    }
+                    onReceivedCharacter?.Invoke(character, _npcID);
+                });
+                OnChangedCustomCharacter.AddListener((character, npcId) =>
+                {
+                    
+                    shortName = character.short_name;
+                    fullName = character.name;
+                    characterDescription = character.description;
+                    voiceId = character.voice_ids.Count > 0 ? character.voice_ids[0] : voiceId;
+                    _npcID = npcId;
+                    outputMessage.text = "";
+
+                    Debug.Log($"Changed custom NPC to '{fullName}' with ID: {_npcID}");
+
+                });
             }
             else
             {
@@ -146,6 +204,17 @@ namespace player2_sdk
             }
         }
 #endif
+
+
+        public void NewCustomCharacter(Character character, UnityEvent<Character, string> onReceivedCharacter)
+        {
+            OnNewCustomCharacter.Invoke(character, onReceivedCharacter);
+        }
+        public void ChangedCustomCharacter(Character character, string npcId)
+        {
+            Debug.Log(character.name);
+            OnChangedCustomCharacter.Invoke(character, npcId);
+        }
 
         private void OnChatMessageSubmitted(string message)
         {
