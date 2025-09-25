@@ -27,6 +27,7 @@
 ## Core Components
 
 ### NPC Management
+
 - **`NpcManager.cs`** - Main NPC management and API communication
 - **`Player2Npc.cs`** - Individual NPC behavior and chat handling
 - **`Player2NpcResponseListener.cs`** - WebSocket response processing
@@ -34,18 +35,21 @@
 - **`SimpleAuthExample.cs`** - Simple component for one-line authentication setup
 
 ### Speech-to-Text (STT)
+
 - **`Player2STT.cs`** - Real-time speech-to-text functionality
 - **`STTController.cs`** - UI controller for STT recording
 - **`WebGLMicrophoneManager.cs`** - WebGL microphone access
 - **`WebGLMicrophone.jslib`** - JavaScript interop for WebGL audio
 
 ### Audio Playback
+
 - **`IAudioPlayer.cs`** - Audio playback interface
 - **`WebGLAudioPlayer.cs`** - WebGL-specific audio player
 - **`DefaultAudioPlayer.cs`** - Standard Unity audio player
 - **`AudioPlayerFactory.cs`** - Platform-specific player selection
 
 ### Documentation & License
+
 - **`ExampleFunctionHandler.cs`** - Sample function handler implementation
 - **`README.md`** - This documentation file
 - **`LICENSE.md`** - MIT license information
@@ -54,11 +58,13 @@
 
 # Getting Started
 
-**Disclaimer**: Since we are not yet an official package on Unity's asset store - you need for now to manually copy assets.
+**Disclaimer**: Since we are not yet an official package on Unity's asset store - you need for now to manually copy
+assets.
 
 ### Prerequisites
 
 Before integrating the Player2 Unity SDK, ensure you have:
+
 - Unity 2023.2 or later
 - A **Client ID** from the [Player2 Developer Dashboard](https://player2.game)
 - Newtonsoft.Json package (automatically installed with this SDK)
@@ -74,8 +80,8 @@ The quickest way to experiment with unity-player2-sdk is to:
    ```
 
 2. **Create Unity project**
-   - Go to Unity Hub
-   - Create new project → 2D (Built-in Render Pipeline)
+    - Go to Unity Hub
+    - Create new project → 2D (Built-in Render Pipeline)
 
 3. **Import SDK files**
    ```bash
@@ -90,46 +96,47 @@ The quickest way to experiment with unity-player2-sdk is to:
    > **💡 Tip**: Symlinks ensure SDK updates automatically propagate to your project!
 
 4. **Import TextMeshPro assets**
-   - Click Window → TextMeshPro → Import TMP Essential Resources
+    - Click Window → TextMeshPro → Import TMP Essential Resources
 
 5. **Reimport all assets**
-   - Go to Assets → Reimport All
+    - Go to Assets → Reimport All
 
 6. **Set up your scene**
-   - Create a new scene or use an existing one
-   - Add the SDK components as described in the integration steps below
+    - Create a new scene or use an existing one
+    - Add the SDK components as described in the integration steps below
 
 7. **Update the SDK**
-   - Run `git pull --rebase origin main` and Assets → Reimport All
-   - Symlinks automatically pick up the latest changes!
+    - Run `git pull --rebase origin main` and Assets → Reimport All
+    - Symlinks automatically pick up the latest changes!
 
 ### Integration Steps
 
 1. **Import the SDK**
-   - Symlink all `.cs`, `.jslib`, and `.meta` files from this repository to your Unity project's `Assets` folder
-   - Unity will automatically compile the scripts
+    - Symlink all `.cs`, `.jslib`, and `.meta` files from this repository to your Unity project's `Assets` folder
+    - Unity will automatically compile the scripts
 
 2. **Set Up NpcManager**
-   - Add the `NpcManager` component to a GameObject in your scene (preferably the scene root)
-   - **Important**: Only use one NpcManager per scene
-   - Configure the required fields:
-     - **Client ID**: Enter your Client ID from the Player2 Developer Dashboard
-     - **TTS**: Enable if you want text-to-speech for NPCs
-     - **Functions**: Define any custom functions your NPCs can call (optional)
+    - Add the `NpcManager` component to a GameObject in your scene (preferably the scene root)
+    - **Important**: Only use one NpcManager per scene
+    - Configure the required fields:
+        - **Client ID**: Enter your Client ID from the Player2 Developer Dashboard
+        - **TTS**: Enable if you want text-to-speech for NPCs
+        - **Functions**: Define any custom functions your NPCs can call (optional)
 
 3. **Add Authentication UI**
-   - **Option 1 (Recommended)**: Add one line to any script:
-     ```csharp
-     AuthenticationUI.Setup(npcManager);
-     ```
-   - **Option 2**: Add `SimpleAuthExample` component to any GameObject and assign your NpcManager
-   - The authentication UI will automatically appear when needed with professional styling
+    - **Option 1 (Recommended)**: Add one line to any script:
+      ```csharp
+      AuthenticationUI.Setup(npcManager);
+      ```
+    - **Option 2**: Add `SimpleAuthExample` component to any GameObject and assign your NpcManager
+    - The authentication UI will automatically appear when needed with professional styling
 
 ### Authentication Setup
 
 The SDK provides a drop-in authentication UI that handles the complete OAuth device flow:
 
 #### Quick Setup (One Line)
+
 ```csharp
 using player2_sdk;
 
@@ -146,26 +153,29 @@ public class GameManager : MonoBehaviour
 ```
 
 #### Component-Based Setup
+
 1. Add `SimpleAuthExample` component to any GameObject in your scene
 2. Drag your `NpcManager` to the **Npc Manager** field
 3. Optionally assign GameObjects to **Game Objects To Show After Auth** array
 4. Done! Authentication UI appears automatically
 
 #### What Happens Automatically
+
 ✅ **Smart Authentication Flow**: Automatically tries Player2 App first, falls back to browser  
 ✅ **Professional UI**: Complete overlay with Player2 branding and clear instructions  
 ✅ **User Guidance**: Shows progress, user codes, and browser links  
 ✅ **Error Handling**: Retry functionality and helpful error messages  
-✅ **Cross-Scene Persistence**: Authentication state maintained across scene loads  
+✅ **Cross-Scene Persistence**: Authentication state maintained across scene loads
 
 #### Authentication Flow
+
 1. **Automatic Check**: UI appears only when authentication is needed
 2. **Player2 App Priority**: Instant authentication if Player2 App is running locally
 3. **Browser Fallback**: Professional overlay guides users through web authentication
 4. **One-Click Setup**: Seamless browser opening with pre-filled authentication codes
 
-
 #### Advanced Usage (Optional)
+
 ```csharp
 // Get authentication events if needed
 var authUI = AuthenticationUI.Setup(npcManager);
@@ -189,7 +199,8 @@ if (AuthenticationUI.Instance != null && AuthenticationUI.Instance.IsAuthenticat
 AuthenticationUI.Instance?.ForceShowAuthUI();
 ```
 
-**Note**: The authentication UI is completely self-contained and requires no scene setup. It automatically creates all necessary UI elements with professional styling that matches modern authentication flows.
+**Note**: The authentication UI is completely self-contained and requires no scene setup. It automatically creates all
+necessary UI elements with professional styling that matches modern authentication flows.
 
 ---
 
@@ -197,25 +208,26 @@ AuthenticationUI.Instance?.ForceShowAuthUI();
 
 ### Introduction
 
-The `NpcManager` component is the heart of the Player2 Unity SDK, allowing you to create AI‑driven NPCs that can chat and perform actions in your game world.
+The `NpcManager` component is the heart of the Player2 Unity SDK, allowing you to create AI‑driven NPCs that can chat
+and perform actions in your game world.
 
-To start integrating the player2-sdk into your project; Add `NpcManager` to your scene root, never use more than one NpcManager.
+To start integrating the player2-sdk into your project; Add `NpcManager` to your scene root, never use more than one
+NpcManager.
 It stores your *Client ID* and the list of functions the LLM can invoke.
 
 ![Adding NpcManager to the hierarchy](https://cdn.elefant.gg/unity-sdk/init-npc-manager.png)
 
-
-
 ### Example setup of `NpcManager`
+
 ![NpcManager inspector configured](https://cdn.elefant.gg/unity-sdk/npc-manager-example.png)
 
 * **Client ID** – your unique identifier from the Player2 Developer Dashboard.
 * **Functions → +** – one element per action.
 
-  * *Name* – code & prompt identifier.
-  * *Description* – natural‑language hint for the model.
-  * *Arguments* – nested rows for each typed parameter (e.g. `radius:number`).
-    * Each argument can be specified if it is *required* (i.e. is not allowed to be null)
+    * *Name* – code & prompt identifier.
+    * *Description* – natural‑language hint for the model.
+    * *Arguments* – nested rows for each typed parameter (e.g. `radius:number`).
+        * Each argument can be specified if it is *required* (i.e. is not allowed to be null)
 
 Example above exposes `flame(radius:number)` which spawns a fiery VFX cloud.
 
@@ -226,19 +238,18 @@ Example above exposes `flame(radius:number)` which spawns a fiery VFX cloud.
 ---
 
 ### Npc Initialisation
+
 Select the GameObject that represents your NPC (`Person 1` in the image below) and add **Player2Npc.cs**.
 
 ![Hierarchy showing Person 1 with Player2Npc](https://cdn.elefant.gg/unity-sdk/npc-init.png)
 
-
-
 ### Configure the NPC component
+
 1. **Npc Manager** – drag the scene’s NpcManager.
 2. **Short / Full Name** – UI labels.
 3. **Character Description** – persona sent at spawn.
 4. **Input Field / Output Message** – TextMesh Pro components that your npc will listen to and output to.
 5. Tick **Persistent** if the NPC should survive restarts of the Player2 client.
-
 
 That’s it—hit **Play** and chat away.
 
@@ -248,11 +259,13 @@ That’s it—hit **Play** and chat away.
 
 ---
 
-
 ## Adding rich NPC functions (Optional)
+
 If you want to allow for a higher level of AI interactivity,
+
 1. Add a script like the sample below to the Scene Root.
-2. In **NpcManager → Function Handler**, press **+**, drag the object, then pick **ExampleFunctionHandler → HandleFunctionCall**.
+2. In **NpcManager → Function Handler**, press **+**, drag the object, then pick **ExampleFunctionHandler →
+   HandleFunctionCall**.
 
 ```csharp
 using UnityEngine;
@@ -356,11 +369,13 @@ In the Unity Editor:
 ### Function Arguments
 
 Function calls include:
+
 - `name`: The function name (e.g., "flame", "teleport")
 - `arguments`: A JObject containing the function parameters
 - `aiObject`: Reference to the NPC GameObject that triggered the function call
 
-You can access arguments using JObject methods like `TryGetValue` or direct indexing with null-coalescing operators for safe access.
+You can access arguments using JObject methods like `TryGetValue` or direct indexing with null-coalescing operators for
+safe access.
 
 ### Advanced Function Handler Example
 
@@ -375,6 +390,7 @@ For more complex scenarios, see `AdvancedFunctionHandler.cs` which demonstrates:
 - **Configuration options** via serialized fields
 
 The advanced handler includes examples of:
+
 - Safe type conversion from JObject to C# types
 - Default value handling for missing arguments
 - Coroutine-based delayed actions
@@ -395,11 +411,13 @@ The advanced handler includes examples of:
 
 # Speech-to-Text Integration
 
-The Player2 Unity SDK includes real-time Speech-to-Text (STT) functionality using WebSocket streaming. This allows players to speak directly to NPCs instead of typing.
+The Player2 Unity SDK includes real-time Speech-to-Text (STT) functionality using WebSocket streaming. This allows
+players to speak directly to NPCs instead of typing.
 
 ## STT Setup
 
 ### Prerequisites
+
 - **NativeWebSocket package** (automatically added to `package.json`)
 - **Newtonsoft.Json** (already included with SDK)
 - **Microphone permissions** in your Unity project
@@ -407,20 +425,21 @@ The Player2 Unity SDK includes real-time Speech-to-Text (STT) functionality usin
 ### Basic Integration
 
 1. **Add STT Component**
-   - Add `Player2STT` component to a GameObject in your scene
-   - Assign your `NpcManager` to the **Npc Manager** field
+    - Add `Player2STT` component to a GameObject in your scene
+    - Assign your `NpcManager` to the **Npc Manager** field
 
 2. **Configure STT Settings**
-   - **Sample Rate**: 44100 Hz (default, recommended)
-   - **Audio Chunk Duration**: 50ms (default)
-   - **Enable Interim Results**: For real-time partial transcriptions
-   - **Enable VAD**: Voice Activity Detection (optional)
+    - **Sample Rate**: 44100 Hz (default, recommended)
+    - **Audio Chunk Duration**: 50ms (default)
+    - **Enable Interim Results**: For real-time partial transcriptions
+    - **Enable VAD**: Voice Activity Detection (optional)
 
 ### Events
+
 The `Player2STT` component provides Unity Events for integration:
 
 - **OnSTTReceived**: Fired when a transcript is received
-- **OnSTTFailed**: Fired when STT encounters an error  
+- **OnSTTFailed**: Fired when STT encounters an error
 - **OnListeningStarted**: Fired when recording begins
 - **OnListeningStopped**: Fired when recording ends
 
@@ -429,19 +448,23 @@ The `Player2STT` component provides Unity Events for integration:
 For a complete UI solution, use the `STTController` component:
 
 ### Setup
+
 1. **Add STTController** to a GameObject with a Button
 2. **Auto-Configuration**: The controller automatically finds:
-   - Button component for recording controls
-   - TextMeshPro components for button text and transcripts
-   - Player2STT component for STT functionality
+    - Button component for recording controls
+    - TextMeshPro components for button text and transcripts
+    - Player2STT component for STT functionality
 
 ### Button States
+
 The controller manages button appearance:
+
 - **Normal**: Circle shape, "REC" text, white color
-- **Connecting**: Circle shape, "..." text, yellow color  
+- **Connecting**: Circle shape, "..." text, yellow color
 - **Recording**: Square shape, "STOP" text, red color
 
 ### Transcript Display
+
 - Automatically accumulates and displays transcripts
 - Shows timestamps and transcript numbers
 - Supports both TextMeshPro and regular Text components
@@ -450,13 +473,15 @@ The controller manages button appearance:
 ## Customization
 
 ### Audio Settings
+
 ```csharp
 [SerializeField] private int sampleRate = 44100;
 [SerializeField] private int audioChunkDurationMs = 50;
 [SerializeField] private float heartbeatInterval = 5f;
 ```
 
-### UI Customization  
+### UI Customization
+
 ```csharp
 [SerializeField] private string recordText = "REC";
 [SerializeField] private string stopText = "STOP";
@@ -466,6 +491,7 @@ The controller manages button appearance:
 ```
 
 ### Manual Integration
+
 If you prefer manual control over the STT system:
 
 ```csharp

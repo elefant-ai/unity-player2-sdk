@@ -1,14 +1,14 @@
 {
-    "name": "com.player2.sdk",
-    "displayName": "Player2 SDK",
-    "version": "1.0.0",
-    "unity": "2023.2",
-    "description": "Easily create seamless AI game experiences, for free!",
-    "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1",
-        "com.endel.nativewebsocket": "git://github.com/endel/NativeWebSocket.git#upm"
-    },
-    "license": "MIT",
-    "documentationUrl": "https://github.com/elefant-ai/unity-player2-sdk",
-    "author": "Edvin Bryntesson <edvin@elefant.gg> (https://player2.game)" 
+  "name": "com.player2.sdk",
+  "displayName": "Player2 SDK",
+  "version": "1.0.0",
+  "unity": "2023.2",
+  "description": "Easily create seamless AI game experiences, for free!",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.endel.nativewebsocket": "git://github.com/endel/NativeWebSocket.git#upm"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/elefant-ai/unity-player2-sdk",
+  "author": "Edvin Bryntesson <edvin@elefant.gg> (https://player2.game)"
 }
