@@ -48,7 +48,7 @@ namespace player2_sdk
         private static TTSVoicesResponse _cachedVoices;
         private static float _lastFetchTime = -1f;
         private const float CACHE_DURATION = 300f; // 5 minutes cache
-        private const string VOICES_ENDPOINT = "http://localhost:4315/v1/tts/voices";
+        private const string VOICES_ENDPOINT = "https://api.player2.game/v1/tts/voices";
 
         private static bool _isFetching = false;
         private static string _fetchError = null;
