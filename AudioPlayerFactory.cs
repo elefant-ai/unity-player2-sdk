@@ -1,14 +1,14 @@
 namespace player2_sdk
 {
     /// <summary>
-    /// Factory class for creating platform-specific audio player implementations
+    ///     Factory class for creating platform-specific audio player implementations
     /// </summary>
     public static class AudioPlayerFactory
     {
         private static IAudioPlayer _instance;
 
         /// <summary>
-        /// Gets the appropriate audio player implementation for the current platform
+        ///     Gets the appropriate audio player implementation for the current platform
         /// </summary>
         public static IAudioPlayer GetAudioPlayer()
         {

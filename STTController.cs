@@ -1,54 +1,52 @@
+using System;
+using System.Linq;
+using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System.Linq;
 
 namespace player2_sdk
 {
     public class STTController : MonoBehaviour
     {
-        [Header("UI References")]
-        [SerializeField] private Button recordButton;
+        [Header("UI References")] [SerializeField]
+        private Button recordButton;
+
         [SerializeField] private Image recordButtonImage;
         [SerializeField] private TextMeshProUGUI buttonText;
         [SerializeField] private TextMeshProUGUI transcriptText;
         [SerializeField] private Player2STT sttComponent;
 
-        // Fallback for regular Text components
-        private Text buttonTextFallback;
-        private Text transcriptTextFallback;
+        [Header("Button Appearance")] [SerializeField]
+        private Sprite circleSprite;
 
-        [Header("Button Appearance")]
-        [SerializeField] private Sprite circleSprite;
         [SerializeField] private Sprite squareSprite;
         [SerializeField] private Color normalColor = Color.white;
         [SerializeField] private Color recordingColor = Color.red;
         [SerializeField] private Color waitingColor = Color.yellow;
 
-        [Header("Button Text")]
-        [SerializeField] private string recordText = "REC";
+        [Header("Button Text")] [SerializeField]
+        private string recordText = "REC";
+
         [SerializeField] private string stopText = "STOP";
         [SerializeField] private string connectingText = "...";
         [SerializeField] private string processingText = "WAIT";
 
-        [Header("Transcript Settings")]
-        [SerializeField] private bool showTimestamps = true;
+        [Header("Transcript Settings")] [SerializeField]
+        private bool showTimestamps = true;
+
         [SerializeField] private bool showTranscriptNumbers = true;
         [SerializeField] private int maxTranscripts = 100;
 
-        private bool isCurrentlyRecording = false;
-
         // Transcript accumulation
-        private System.Text.StringBuilder transcriptBuilder = new System.Text.StringBuilder();
-        private int transcriptCounter = 1;
+        private readonly StringBuilder transcriptBuilder = new();
 
-        private enum ButtonState
-        {
-            Normal,      // Circle, "Record", white
-            Connecting,  // Circle, "Connecting...", yellow
-            Recording,   // Square, "Stop", red
-            Processing   // Square, "Processing...", yellow
-        }
+        // Fallback for regular Text components
+        private Text buttonTextFallback;
+
+        private bool isCurrentlyRecording;
+        private int transcriptCounter = 1;
+        private Text transcriptTextFallback;
 
         private void Start()
         {
@@ -62,10 +60,10 @@ namespace player2_sdk
 
         private void ShowWelcomeMessage()
         {
-            string welcomeMessage = "SPEECH-TO-TEXT READY\n" +
-                                  "Click the button to start recording.\n" +
-                                  "Transcripts will appear here in real-time.\n" +
-                                  "========================================\n";
+            var welcomeMessage = "SPEECH-TO-TEXT READY\n" +
+                                 "Click the button to start recording.\n" +
+                                 "Transcripts will appear here in real-time.\n" +
+                                 "========================================\n";
 
             transcriptBuilder.AppendLine(welcomeMessage);
             UpdateTranscriptDisplay();
@@ -86,78 +84,64 @@ namespace player2_sdk
             {
                 buttonText = recordButton.GetComponentInChildren<TextMeshProUGUI>();
 
-                if (buttonText == null)
-                {
-                    buttonTextFallback = recordButton.GetComponentInChildren<Text>();
-
-                }
+                if (buttonText == null) buttonTextFallback = recordButton.GetComponentInChildren<Text>();
 
                 if (buttonText == null && buttonTextFallback == null)
                 {
                     buttonText = recordButton.GetComponent<TextMeshProUGUI>();
-                    if (buttonText == null)
-                    {
-                        buttonTextFallback = recordButton.GetComponent<Text>();
-                    }
+                    if (buttonText == null) buttonTextFallback = recordButton.GetComponent<Text>();
                 }
 
-                Debug.Log($"Button text search result: {(buttonText != null ? $"Found TextMeshPro: {buttonText.name}" : buttonTextFallback != null ? $"Found Text: {buttonTextFallback.name}" : "Not found - button will work but text won't change")}");
+                Debug.Log(
+                    $"Button text search result: {(buttonText != null ? $"Found TextMeshPro: {buttonText.name}" : buttonTextFallback != null ? $"Found Text: {buttonTextFallback.name}" : "Not found - button will work but text won't change")}");
             }
 
             if (transcriptText == null)
             {
                 var allTexts = FindObjectsByType<TextMeshProUGUI>(FindObjectsSortMode.None);
                 foreach (var text in allTexts)
-                {
-                    if (text != buttonText && (text.name.ToLower().Contains("transcript") || text.name.ToLower().Contains("output")))
+                    if (text != buttonText && (text.name.ToLower().Contains("transcript") ||
+                                               text.name.ToLower().Contains("output")))
                     {
                         transcriptText = text;
                         break;
                     }
-                }
+
                 if (transcriptText == null)
-                {
                     foreach (var text in allTexts)
-                    {
                         if (text != buttonText)
                         {
                             transcriptText = text;
                             break;
                         }
-                    }
-                }
 
                 if (transcriptText == null)
                 {
                     var allRegularTexts = FindObjectsByType<Text>(FindObjectsSortMode.None);
                     foreach (var text in allRegularTexts)
-                    {
-                        if (text != buttonTextFallback && (text.name.ToLower().Contains("transcript") || text.name.ToLower().Contains("output")))
+                        if (text != buttonTextFallback && (text.name.ToLower().Contains("transcript") ||
+                                                           text.name.ToLower().Contains("output")))
                         {
                             transcriptTextFallback = text;
-                            Debug.Log($"STTController: Using regular Text component '{transcriptTextFallback.name}' as fallback for transcript text.");
+                            Debug.Log(
+                                $"STTController: Using regular Text component '{transcriptTextFallback.name}' as fallback for transcript text.");
                             break;
                         }
-                    }
+
                     if (transcriptTextFallback == null)
-                    {
                         foreach (var text in allRegularTexts)
-                        {
                             if (text != buttonTextFallback)
                             {
                                 transcriptTextFallback = text;
-                                Debug.Log($"STTController: Using regular Text component '{transcriptTextFallback.name}' as fallback for transcript text.");
+                                Debug.Log(
+                                    $"STTController: Using regular Text component '{transcriptTextFallback.name}' as fallback for transcript text.");
                                 break;
                             }
-                        }
-                    }
                 }
             }
 
             if (recordButton == null || sttComponent == null)
-            {
                 Debug.LogWarning("STTController: Some components could not be auto-configured. Check inspector.");
-            }
         }
 
         private void CreateDefaultSprites()
@@ -181,14 +165,12 @@ namespace player2_sdk
             var center = new Vector2(32, 32);
             var radius = 28;
 
-            for (int x = 0; x < 64; x++)
+            for (var x = 0; x < 64; x++)
+            for (var y = 0; y < 64; y++)
             {
-                for (int y = 0; y < 64; y++)
-                {
-                    var distance = Vector2.Distance(new Vector2(x, y), center);
-                    var color = distance <= radius ? Color.white : Color.clear;
-                    texture.SetPixel(x, y, color);
-                }
+                var distance = Vector2.Distance(new Vector2(x, y), center);
+                var color = distance <= radius ? Color.white : Color.clear;
+                texture.SetPixel(x, y, color);
             }
 
             texture.Apply();
@@ -199,13 +181,11 @@ namespace player2_sdk
         {
             var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false);
 
-            for (int x = 0; x < 64; x++)
+            for (var x = 0; x < 64; x++)
+            for (var y = 0; y < 64; y++)
             {
-                for (int y = 0; y < 64; y++)
-                {
-                    var color = (x >= 8 && x < 56 && y >= 8 && y < 56) ? Color.white : Color.clear;
-                    texture.SetPixel(x, y, color);
-                }
+                var color = x >= 8 && x < 56 && y >= 8 && y < 56 ? Color.white : Color.clear;
+                texture.SetPixel(x, y, color);
             }
 
             texture.Apply();
@@ -214,10 +194,7 @@ namespace player2_sdk
 
         private void SetupEventListeners()
         {
-            if (recordButton != null)
-            {
-                recordButton.onClick.AddListener(OnRecordButtonClicked);
-            }
+            if (recordButton != null) recordButton.onClick.AddListener(OnRecordButtonClicked);
 
             if (sttComponent != null)
             {
@@ -261,36 +238,30 @@ namespace player2_sdk
         {
             if (string.IsNullOrEmpty(transcript)) return;
 
-            string entry = "";
+            var entry = "";
 
             if (showTimestamps)
             {
-                string timestamp = System.DateTime.Now.ToString("HH:mm:ss");
+                var timestamp = DateTime.Now.ToString("HH:mm:ss");
                 entry += $"[{timestamp}] ";
             }
 
-            if (showTranscriptNumbers)
-            {
-                entry += $"#{transcriptCounter:D2}: ";
-            }
+            if (showTranscriptNumbers) entry += $"#{transcriptCounter:D2}: ";
 
             entry += transcript;
 
             transcriptBuilder.AppendLine(entry);
             transcriptCounter++;
 
-            if (transcriptCounter > maxTranscripts)
-            {
-                TrimOldTranscripts();
-            }
+            if (transcriptCounter > maxTranscripts) TrimOldTranscripts();
 
             UpdateTranscriptDisplay();
         }
 
         private void TrimOldTranscripts()
         {
-            string currentText = transcriptBuilder.ToString();
-            string[] lines = currentText.Split('\n');
+            var currentText = transcriptBuilder.ToString();
+            var lines = currentText.Split('\n');
 
             if (lines.Length > maxTranscripts)
             {
@@ -302,20 +273,14 @@ namespace player2_sdk
 
         private void UpdateTranscriptDisplay()
         {
-            string fullTranscript = transcriptBuilder.ToString();
+            var fullTranscript = transcriptBuilder.ToString();
 
             if (transcriptText != null)
-            {
                 transcriptText.text = fullTranscript;
-            }
             else if (transcriptTextFallback != null)
-            {
                 transcriptTextFallback.text = fullTranscript;
-            }
             else
-            {
                 Debug.LogError("No transcript text component found. Please assign one in the inspector.");
-            }
         }
 
         public void ClearTranscripts()
@@ -329,8 +294,8 @@ namespace player2_sdk
         {
             Debug.LogError($"STT failed: {error} (Code: {code})");
 
-            string timestamp = System.DateTime.Now.ToString("HH:mm:ss");
-            string errorEntry = $"[{timestamp}] ERROR: {error}\n";
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            var errorEntry = $"[{timestamp}] ERROR: {error}\n";
 
             transcriptBuilder.AppendLine(errorEntry);
             UpdateTranscriptDisplay();
@@ -350,7 +315,6 @@ namespace player2_sdk
             isCurrentlyRecording = false;
             SetButtonState(ButtonState.Normal);
         }
-
 
 
         private void SetButtonState(ButtonState state)
@@ -388,13 +352,16 @@ namespace player2_sdk
         private void SetButtonText(string text)
         {
             if (buttonText != null)
-            {
                 buttonText.text = text;
-            }
-            else if (buttonTextFallback != null)
-            {
-                buttonTextFallback.text = text;
-            }
+            else if (buttonTextFallback != null) buttonTextFallback.text = text;
+        }
+
+        private enum ButtonState
+        {
+            Normal, // Circle, "Record", white
+            Connecting, // Circle, "Connecting...", yellow
+            Recording, // Square, "Stop", red
+            Processing // Square, "Processing...", yellow
         }
     }
 }

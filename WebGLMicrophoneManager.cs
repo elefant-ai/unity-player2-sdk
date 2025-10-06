@@ -5,10 +5,38 @@ using UnityEngine;
 namespace player2_sdk
 {
     /// <summary>
-    /// WebGL-compatible microphone manager that uses browser APIs
+    ///     WebGL-compatible microphone manager that uses browser APIs
     /// </summary>
     public class WebGLMicrophoneManager : MonoBehaviour
     {
+        private bool isInitialized;
+
+        /// <summary>
+        ///     Check if microphone is currently recording
+        /// </summary>
+        public bool IsRecording { get; private set; }
+
+        /// <summary>
+        ///     Check if microphone is initialized
+        /// </summary>
+        public bool IsInitialized =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            isInitialized;
+#else
+            false;
+#endif
+
+        private void Awake()
+        {
+            // Ensure this persists across scene loads
+            DontDestroyOnLoad(gameObject);
+        }
+
+        private void OnDestroy()
+        {
+            Dispose();
+        }
+
         [DllImport("__Internal")]
         private static extern bool WebGLMicrophone_Init(string gameObjectName, string callbackMethodName);
 
@@ -27,17 +55,8 @@ namespace player2_sdk
         public event Action<float[]> OnAudioDataReceived;
         public event Action<bool> OnInitialized;
 
-        private bool isInitialized = false;
-        private bool isRecording = false;
-
-        private void Awake()
-        {
-            // Ensure this persists across scene loads
-            DontDestroyOnLoad(gameObject);
-        }
-
         /// <summary>
-        /// Initialize the WebGL microphone
+        ///     Initialize the WebGL microphone
         /// </summary>
         public void Initialize()
         {
@@ -51,13 +70,14 @@ namespace player2_sdk
 
             WebGLMicrophone_Init(gameObject.name, "OnWebGLInitCallback");
 #else
-            Debug.LogWarning("WebGL Microphone: Not supported in Unity Editor. Microphone functionality will be disabled.");
+            Debug.LogWarning(
+                "WebGL Microphone: Not supported in Unity Editor. Microphone functionality will be disabled.");
             OnInitialized?.Invoke(false);
 #endif
         }
 
         /// <summary>
-        /// Start recording audio
+        ///     Start recording audio
         /// </summary>
         public void StartRecording()
         {
@@ -83,7 +103,7 @@ namespace player2_sdk
         }
 
         /// <summary>
-        /// Stop recording audio
+        ///     Stop recording audio
         /// </summary>
         public void StopRecording()
         {
@@ -99,7 +119,7 @@ namespace player2_sdk
         }
 
         /// <summary>
-        /// Clean up resources
+        ///     Clean up resources
         /// </summary>
         public void Dispose()
         {
@@ -107,23 +127,8 @@ namespace player2_sdk
             WebGLMicrophone_Dispose();
 #endif
             isInitialized = false;
-            isRecording = false;
+            IsRecording = false;
         }
-
-        /// <summary>
-        /// Check if microphone is currently recording
-        /// </summary>
-        public bool IsRecording => isRecording;
-
-        /// <summary>
-        /// Check if microphone is initialized
-        /// </summary>
-        public bool IsInitialized =>
-#if UNITY_WEBGL && !UNITY_EDITOR
-            isInitialized;
-#else
-            false;
-#endif
 
         // Callback from JavaScript via SendMessage
         private void OnWebGLInitCallback(string success)
@@ -142,16 +147,16 @@ namespace player2_sdk
             try
             {
                 // Decode base64 to bytes (these are the raw bytes of Float32Array)
-                byte[] bytes = Convert.FromBase64String(base64Data);
+                var bytes = Convert.FromBase64String(base64Data);
 
                 // Convert bytes to float array (4 bytes per float)
-                int floatCount = bytes.Length / 4;
-                float[] audioData = new float[floatCount];
+                var floatCount = bytes.Length / 4;
+                var audioData = new float[floatCount];
 
-                for (int i = 0; i < floatCount; i++)
+                for (var i = 0; i < floatCount; i++)
                 {
                     // Convert 4 bytes to float (little-endian)
-                    int byteIndex = i * 4;
+                    var byteIndex = i * 4;
                     if (BitConverter.IsLittleEndian)
                     {
                         audioData[i] = BitConverter.ToSingle(bytes, byteIndex);
@@ -159,7 +164,7 @@ namespace player2_sdk
                     else
                     {
                         // Handle big-endian systems by reversing byte order
-                        byte[] floatBytes = new byte[4];
+                        var floatBytes = new byte[4];
                         Array.Copy(bytes, byteIndex, floatBytes, 0, 4);
                         Array.Reverse(floatBytes);
                         audioData[i] = BitConverter.ToSingle(floatBytes, 0);
@@ -172,11 +177,6 @@ namespace player2_sdk
             {
                 Debug.LogError($"WebGL Microphone: Error processing audio data: {ex.Message}");
             }
-        }
-
-        private void OnDestroy()
-        {
-            Dispose();
         }
     }
 }

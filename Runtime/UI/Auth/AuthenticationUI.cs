@@ -735,7 +735,7 @@ namespace player2_sdk
 
         public bool IsAuthenticated()
         {
-            return !string.IsNullOrEmpty(npcManager?.apiKey);
+            return !string.IsNullOrEmpty(npcManager?.ApiKey);
         }
 
         public void ForceShowAuthUI()

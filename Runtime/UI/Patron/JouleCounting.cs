@@ -1,10 +1,8 @@
-using player2_sdk;
+using Newtonsoft.Json.Linq;
 using TMPro;
+using Unity.VectorGraphics;
 using UnityEngine;
 using UnityEngine.Networking;
-using Newtonsoft.Json.Linq;
-using Unity.VectorGraphics;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace player2_sdk
@@ -17,15 +15,12 @@ namespace player2_sdk
         [SerializeField] private GameObject counter;
         [SerializeField] private GameObject upgradePanel;
         [SerializeField] private Button upgradeButton;
-        private float pollIntervalSeconds = 5f;
+        private readonly float pollIntervalSeconds = 5f;
         private bool pollStarted;
-        
-        void Start()
+
+        private void Start()
         {
-            upgradeButton.onClick.AddListener(() =>
-            {
-                Application.OpenURL("https://player2.game/profile/patron");
-            });
+            upgradeButton.onClick.AddListener(() => { Application.OpenURL("https://player2.game/profile/ai-power"); });
             if (npcManager == null)
             {
                 Debug.LogError("NpcManager reference is not set in JouleCounting.");
@@ -41,7 +36,11 @@ namespace player2_sdk
             // If hosted (auth skipped), fetch immediately; otherwise wait for apiTokenReady.
             if (npcManager.ShouldSkipAuthentication())
             {
-                if (!pollStarted) { pollStarted = true; _ = PollLoop(); }
+                if (!pollStarted)
+                {
+                    pollStarted = true;
+                    _ = PollLoop();
+                }
             }
             else
             {
@@ -52,8 +51,6 @@ namespace player2_sdk
                     _ = PollLoop();
                 });
             }
-            
-            
         }
 
         private async Awaitable PollLoop()
@@ -64,7 +61,7 @@ namespace player2_sdk
             {
                 await FetchAndDisplayJoules();
 
-                float elapsed = 0f;
+                var elapsed = 0f;
                 while (elapsed < wait && enabled && gameObject.activeInHierarchy)
                 {
                     await Awaitable.NextFrameAsync();
@@ -82,16 +79,11 @@ namespace player2_sdk
             {
                 // Always send client id; add auth header unless auth is skipped
                 req.SetRequestHeader("x-client-id", npcManager.clientId);
-                if (!npcManager.ShouldSkipAuthentication() && !string.IsNullOrEmpty(npcManager.apiKey))
-                {
-                    req.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
-                }
+                if (!npcManager.ShouldSkipAuthentication() && !string.IsNullOrEmpty(npcManager.ApiKey))
+                    req.SetRequestHeader("Authorization", $"Bearer {npcManager.ApiKey}");
 
                 var op = req.SendWebRequest();
-                while (!op.isDone)
-                {
-                    await Awaitable.NextFrameAsync();
-                }
+                while (!op.isDone) await Awaitable.NextFrameAsync();
 
                 if (req.result != UnityWebRequest.Result.Success)
                 {
@@ -109,21 +101,17 @@ namespace player2_sdk
                 int joulesValue;
                 // Try plain integer first; fall back to JSON parsing
                 if (!int.TryParse(body, out joulesValue))
-                {
                     try
                     {
                         var token = JToken.Parse(body);
                         if (token.Type == JTokenType.Object && token["joules"] != null)
-                        {
                             joulesValue = token["joules"]!.Value<int>();
-                        }
                     }
                     catch
                     {
                         Debug.LogWarning($"Failed to parse /joules response: {body}");
                         return;
                     }
-                }
 
                 if (joulesValue == 0)
                 {
@@ -134,10 +122,7 @@ namespace player2_sdk
                 {
                     if (counter != null) counter.SetActive(true);
                     if (upgradePanel != null) upgradePanel.SetActive(false);
-                    if (textMesh != null)
-                    {
-                        textMesh.text = joulesValue.ToString();
-                    }
+                    if (textMesh != null) textMesh.text = joulesValue.ToString();
 
                     if (image != null)
                     {
@@ -146,26 +131,25 @@ namespace player2_sdk
                         image.color = c;
                     }
                 }
-                
             }
         }
 
         private Color JoulesToColor(int joules)
         {
-            var v = Mathf.Clamp(joules, 0, 500);
+            var v = Mathf.Clamp(joules, 0, 100);
 
             var red = Color.red;
             var yellow = Color.yellow;
             var green = Color.green;
 
-            if (v <= 250)
+            if (v <= 80)
             {
-                var t = v / 250f;         
+                var t = Mathf.Clamp(Mathf.Clamp(v, 20f, 80f) / 80f - 20f / 80f, 0f, 1f);
                 return Color.Lerp(red, yellow, t);
             }
             else
             {
-                var t = (v - 250f) / 250f; 
+                var t = (v - 80f) / 20f;
                 return Color.Lerp(yellow, green, t);
             }
         }

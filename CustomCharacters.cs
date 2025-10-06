@@ -1,40 +1,34 @@
-using UnityEngine;
-using UnityEngine.Networking;
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using System;
-using UnityEngine.Events;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.Networking;
+
 namespace player2_sdk
 {
-
     /// <summary>
-    /// Attribute to mark a string field as a TTS voice selector
+    ///     Attribute to mark a string field as a TTS voice selector
     /// </summary>
     public class RemoveIfCustomNpcAttribute : PropertyAttribute
     {
-        public RemoveIfCustomNpcAttribute() { }
     }
-
-    
 
 
     /// <summary>
-    /// Custom property drawer for TTS voice selection
+    ///     Custom property drawer for TTS voice selection
     /// </summary>
     [CustomPropertyDrawer(typeof(RemoveIfCustomNpcAttribute))]
     public class RemoveIfCustomNpcDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-
             var targetObject = property.serializedObject.targetObject;
 
             var customNpc = targetObject is Player2Npc myScript && myScript.customNpc;
             // Cast to your specific type
-            if (customNpc) {
-                label.tooltip = "Disabled because 'Custom NPC' is enabled.";
-            }
+            if (customNpc) label.tooltip = "Disabled because 'Custom NPC' is enabled.";
             EditorGUI.BeginDisabledGroup(customNpc);
             EditorGUI.PropertyField(position, property, label, true);
             EditorGUI.EndDisabledGroup();
@@ -43,9 +37,6 @@ namespace player2_sdk
 
     public class CustomNpcChecker : PropertyAttribute
     {
-        public CustomNpcChecker()
-        {
-         }
     }
 
     [CustomPropertyDrawer(typeof(CustomNpcChecker))]
@@ -53,14 +44,14 @@ namespace player2_sdk
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-
             var targetObject = property.serializedObject.targetObject;
             if (targetObject is not Player2Npc)
             {
                 EditorGUI.LabelField(position, "Error: CustomNpcChecker can only be used on Player2Npc.");
                 return;
             }
-            Player2Npc player2Npc = (Player2Npc)targetObject;
+
+            var player2Npc = (Player2Npc)targetObject;
 
             var customNpc = player2Npc.customNpc;
             // Cast to your specific type
@@ -69,7 +60,6 @@ namespace player2_sdk
                 var height = GetPropertyHeight(property, label);
 
                 EditorGUI.PropertyField(position, property, label);
-
             }
         }
 
@@ -78,14 +68,10 @@ namespace player2_sdk
             var targetObject = property.serializedObject.targetObject;
 
             var customNpc = targetObject is Player2Npc myScript && myScript.customNpc;
-            if (customNpc)
-            {
-                return EditorGUIUtility.singleLineHeight * 5; // Height for the help box
-            }
+            if (customNpc) return EditorGUIUtility.singleLineHeight * 5; // Height for the help box
             return 0; // No height when not showing the help box
         }
     }
-
 
 
     [Serializable]
@@ -115,50 +101,41 @@ namespace player2_sdk
 
     public class CustomCharacters : MonoBehaviour
     {
-        [Header("API Configuration")]
-        [SerializeField] private float fetchInterval = 15f; // 15 seconds
+        [Header("API Configuration")] [SerializeField]
+        private float fetchInterval = 15f; // 15 seconds
 
-        [Header("NPC Spawning")]
-        [SerializeField] private NpcManager npcManager;
-
-
+        [Header("NPC Spawning")] [SerializeField]
+        private NpcManager npcManager;
 
 
-        [Header("Debug")]
-        [SerializeField] private bool enableDebugLogs = true;
+        [Header("Debug")] [SerializeField] private bool enableDebugLogs = true;
+
+        public UnityEvent<Character, string> OnNpcSpawned; // Character, NPC ID
+
+
+        public UnityEvent<Character, UnityEvent<Character, string>> OnNewCustomCharacter = new();
+
+        // Persistent NPC tracking - never clear these
+        private readonly Dictionary<string, string> spawnedNpcIds = new(); // Character ID -> NPC ID
 
         private List<Character> cachedCharacters;
         private Coroutine fetchCoroutine;
-        private bool isInitialized = false;
-
-        // Persistent NPC tracking - never clear these
-        private Dictionary<string, string> spawnedNpcIds = new Dictionary<string, string>(); // Character ID -> NPC ID
+        private bool isInitialized;
 
 
         public List<Character> Characters => cachedCharacters ?? new List<Character>();
         public bool IsDataReady => cachedCharacters != null && cachedCharacters.Count > 0;
 
+
+        private void Start()
+        {
+            npcManager.apiTokenReady.AddListener(async () => { await InitializeCharacterFetching(); });
+        }
+
         // Public access to the name -> ID mapping
 
         public event Action<List<Character>> OnCharactersUpdated;
         public event Action<string> OnFetchError;
-        public UnityEvent<Character, string> OnNpcSpawned; // Character, NPC ID
-
-
-        public UnityEvent<Character, UnityEvent<Character, string>> OnNewCustomCharacter = new UnityEvent<Character, UnityEvent<Character, string>>();
-
-
-
-        void Start()
-        {
-
-
-            npcManager.apiTokenReady.AddListener(async () =>
-            {
-                await InitializeCharacterFetching();
-            });
-        }
-
 
 
         private async Awaitable InitializeCharacterFetching()
@@ -180,40 +157,40 @@ namespace player2_sdk
         {
             while (true)
             {
-                string url = $"{npcManager.GetBaseUrl()}/selected_characters";
+                var url = $"{npcManager.GetBaseUrl()}/selected_characters";
 
                 if (enableDebugLogs)
                     Debug.Log($"SelectedCharacters: Fetching characters from {url}");
 
-                using (UnityWebRequest request = UnityWebRequest.Get(url))
+                using (var request = UnityWebRequest.Get(url))
                 {
                     request.timeout = 10; // 10 second timeout
                     request.SetRequestHeader("Accept", "application/json");
-                    request.SetRequestHeader("Authorization", $"Bearer {npcManager.apiKey}");
+                    request.SetRequestHeader("Authorization", $"Bearer {npcManager.ApiKey}");
 
 
                     await request.SendWebRequest();
 
                     if (request.result == UnityWebRequest.Result.Success)
                     {
-
-                        string jsonResponse = request.downloadHandler.text;
+                        var jsonResponse = request.downloadHandler.text;
 
                         if (enableDebugLogs)
                             Debug.Log($"SelectedCharacters: Received response: {jsonResponse}");
 
-                        SelectedCharactersResponse response = JsonConvert.DeserializeObject<SelectedCharactersResponse>(jsonResponse);
+                        var response = JsonConvert.DeserializeObject<SelectedCharactersResponse>(jsonResponse);
 
                         if (response?.characters != null)
                         {
                             foreach (var character in response.characters)
                             {
-                               if (cachedCharacters.Contains(character)) continue;
-                               cachedCharacters.Add(character);
+                                if (cachedCharacters.Contains(character)) continue;
+                                cachedCharacters.Add(character);
                             }
 
                             if (enableDebugLogs)
-                                Debug.Log($"SelectedCharacters: Successfully cached {cachedCharacters.Count} characters");
+                                Debug.Log(
+                                    $"SelectedCharacters: Successfully cached {cachedCharacters.Count} characters");
 
 
                             // Spawn NPCs for new characters
@@ -223,21 +200,21 @@ namespace player2_sdk
                         }
                         else
                         {
-                            string error = "Invalid response format: missing characters array";
+                            var error = "Invalid response format: missing characters array";
                             if (enableDebugLogs)
                                 Debug.LogWarning($"SelectedCharacters: {error}");
                             OnFetchError?.Invoke(error);
                         }
-
                     }
                     else
                     {
-                        string error = $"HTTP request failed: {request.result} - {request.error}";
+                        var error = $"HTTP request failed: {request.result} - {request.error}";
                         if (enableDebugLogs)
                             Debug.LogError($"SelectedCharacters: {error}");
                         OnFetchError?.Invoke(error);
                     }
                 }
+
                 await Awaitable.WaitForSecondsAsync(5f);
             }
         }
@@ -253,7 +230,6 @@ namespace player2_sdk
             return cachedCharacters?.Find(c => c.short_name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         }
 
-       
 
         private void SpawnNewCharacterNpcs()
         {
@@ -267,33 +243,27 @@ namespace player2_sdk
             if (cachedCharacters == null || cachedCharacters.Count == 0)
                 return;
 
-        
 
             foreach (var character in cachedCharacters)
             {
                 // Skip if we already spawned an NPC for this character
-                if (spawnedNpcIds.ContainsKey(character.id))
-                {
-                    continue;
-                }
+                if (spawnedNpcIds.ContainsKey(character.id)) continue;
                 var newEvent = new UnityEvent<Character, string>();
 
 
                 newEvent.AddListener((character, npcId) =>
-                                {
-                                    spawnedNpcIds.Add(character.id, npcId);
-                                    OnNpcSpawned.Invoke(character, npcId);
-                                });
+                {
+                    spawnedNpcIds.Add(character.id, npcId);
+                    OnNpcSpawned.Invoke(character, npcId);
+                });
                 OnNewCustomCharacter.Invoke(character, newEvent);
             }
         }
 
 
-        
-
         public string GetNpcIdForCharacter(Character character)
         {
-            return spawnedNpcIds.TryGetValue(character.id, out string npcId) ? npcId : null;   
+            return spawnedNpcIds.TryGetValue(character.id, out var npcId) ? npcId : null;
         }
     }
 }
