@@ -34,12 +34,7 @@ namespace player2_sdk.Editor
 
                 EditorGUILayout.Space(10);
 
-                if (GUILayout.Button("Publish to Player2"))
-                    if (manager != null)
-                    {
-                        var clientId = manager.clientId; // Access the field
-                        Application.OpenURL($"https://player2.game/profile/developer/{clientId}");
-                    }
+                if (GUILayout.Button("Publish to Player2")) PublishingWindow.ShowWindow();
             }
 
 
@@ -64,5 +59,6 @@ namespace player2_sdk.Editor
 
                 return true;
             }
+            
         }
 }

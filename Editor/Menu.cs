@@ -1,12 +1,15 @@
 using System;
 using UnityEditor;
+using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace player2_sdk.Editor
 {
     public class Menu : MonoBehaviour
     {
-        [MenuItem("Player2/Publish")]
+        private string buildPath = "Builds/WebGL";
+
+        [MenuItem("Player2/Game Overview")]
         private static void OpenWebsite()
         {
             var targetObject = GameObject.Find("NpcManager");
@@ -32,4 +35,6 @@ namespace player2_sdk.Editor
         }
         
     }
+    
+    
 }
