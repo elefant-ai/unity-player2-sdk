@@ -83,11 +83,14 @@ namespace player2_sdk
             "Custom trace ID for request tracking. If set, this will be added as X-Player2-Trace-Id header to all requests.")]
         [SerializeField]
         private string customTraceId = "";
-
-        [CustomNpcChecker] private readonly UnityEvent<Character, string> OnChangedCustomCharacter = new();
-
-
+#if UNITY_EDITOR
         [CustomNpcChecker]
+#endif
+         private readonly UnityEvent<Character, string> OnChangedCustomCharacter = new();
+
+#if UNITY_EDITOR
+        [CustomNpcChecker]
+#endif
         private readonly UnityEvent<Character, UnityEvent<Character, string>> OnNewCustomCharacter = new();
 
         private string _npcID;

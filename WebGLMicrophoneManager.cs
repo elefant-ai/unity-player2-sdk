@@ -90,7 +90,7 @@ namespace player2_sdk
 
             if (WebGLMicrophone_StartRecording())
             {
-                isRecording = true;
+                IsRecording = true;
                 Debug.Log("WebGL Microphone: Recording started");
             }
             else
@@ -110,7 +110,7 @@ namespace player2_sdk
 #if UNITY_WEBGL && !UNITY_EDITOR
             if (WebGLMicrophone_StopRecording())
             {
-                isRecording = false;
+                IsRecording = false;
                 Debug.Log("WebGL Microphone: Recording stopped");
             }
 #else
