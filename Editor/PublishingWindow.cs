@@ -140,7 +140,7 @@ namespace player2_sdk.Editor
         }
 
 
-        [MenuItem("Player2/Publish")]
+        //[MenuItem("Player2/Publish")]
         public static void ShowWindow()
         {
             // Creates or focuses the window

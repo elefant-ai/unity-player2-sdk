@@ -34,7 +34,7 @@ namespace player2_sdk.Editor
 
             EditorGUILayout.Space(10);
 
-            if (GUILayout.Button("Publish to Player2")) PublishingWindow.ShowWindow();
+            //if (GUILayout.Button("Publish to Player2")) PublishingWindow.ShowWindow();
         }
 
 
