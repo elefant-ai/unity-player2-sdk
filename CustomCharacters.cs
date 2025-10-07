@@ -17,7 +17,7 @@ namespace player2_sdk
 
 
 #if UNITY_EDITOR
-    
+
     /// <summary>
     ///     Custom property drawer for TTS voice selection
     /// </summary>
@@ -74,7 +74,7 @@ namespace player2_sdk
             return 0; // No height when not showing the help box
         }
     }
-    #endif
+#endif
 
 
     [Serializable]
@@ -102,7 +102,7 @@ namespace player2_sdk
         public List<Character> characters;
     }
 
-    
+
     public class CustomCharacters : MonoBehaviour
     {
         [Header("API Configuration")] [SerializeField]

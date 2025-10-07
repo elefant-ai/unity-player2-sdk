@@ -86,7 +86,7 @@ namespace player2_sdk
 #if UNITY_EDITOR
         [CustomNpcChecker]
 #endif
-         private readonly UnityEvent<Character, string> OnChangedCustomCharacter = new();
+        private readonly UnityEvent<Character, string> OnChangedCustomCharacter = new();
 
 #if UNITY_EDITOR
         [CustomNpcChecker]
@@ -101,8 +101,11 @@ namespace player2_sdk
             if (npcManager == null)
             {
                 Debug.LogError("Player2Npc requires an NpcManager reference. Please assign it in the inspector.", this);
+                return;
             }
-            else if (customNpc)
+
+
+            if (customNpc)
             {
                 OnNewCustomCharacter.AddListener(async (character, onReceivedCharacter) =>
                 {
@@ -131,13 +134,9 @@ namespace player2_sdk
             else
             {
                 if (!string.IsNullOrEmpty(npcManager.ApiKey))
-                {
                     StartCoroutine(SpawnNpcAsync());
-                }
                 else
-                {
-                npcManager.spawnNpcs.AddListener(async () => { await SpawnNpcAsync(); });
-                }
+                    npcManager.spawnNpcs.AddListener(async () => { await SpawnNpcAsync(); });
             }
 
             if (inputField != null)
