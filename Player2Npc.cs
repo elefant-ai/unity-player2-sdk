@@ -130,7 +130,14 @@ namespace player2_sdk
             }
             else
             {
+                if (!string.IsNullOrEmpty(npcManager.ApiKey))
+                {
+                    StartCoroutine(SpawnNpcAsync());
+                }
+                else
+                {
                 npcManager.spawnNpcs.AddListener(async () => { await SpawnNpcAsync(); });
+                }
             }
 
             if (inputField != null)
