@@ -1,15 +1,15 @@
+using System;
+using System.Collections;
+using System.IO;
+using System.Runtime.InteropServices;
+using UnityEngine;
+using UnityEngine.Networking;
+
 #if UNITY_WEBGL
 namespace player2_sdk
 {
-    using System;
-    using System.Collections;
-    using System.IO;
-    using System.Runtime.InteropServices;
-    using UnityEngine;
-    using UnityEngine.Networking;
-
     /// <summary>
-    /// WebGL-specific audio player implementation that avoids file:// protocol issues
+    ///     WebGL-specific audio player implementation that avoids file:// protocol issues
     /// </summary>
     public class WebGLAudioPlayer : IAudioPlayer
     {
@@ -30,15 +30,16 @@ namespace player2_sdk
             }
 
             // Find the comma that separates metadata from base64 data
-            int commaIndex = dataUrl.IndexOf(',');
+            var commaIndex = dataUrl.IndexOf(',');
             if (commaIndex == -1 || commaIndex == dataUrl.Length - 1)
             {
-                Debug.LogError($"Cannot play audio for {identifier}: invalid data URL format (missing comma or no data after comma)");
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: invalid data URL format (missing comma or no data after comma)");
                 yield break;
             }
 
             // Extract base64 data from data URL
-            string base64String = dataUrl.Substring(commaIndex + 1);
+            var base64String = dataUrl.Substring(commaIndex + 1);
 
             // Validate that we have base64 data
             if (string.IsNullOrEmpty(base64String))
@@ -59,22 +60,23 @@ namespace player2_sdk
             try
             {
                 // Fix Base64 padding if needed
-                string paddedBase64 = FixBase64Padding(base64String);
-                
+                var paddedBase64 = FixBase64Padding(base64String);
+
                 // Decode to bytes
                 audioBytes = Convert.FromBase64String(paddedBase64);
             }
             catch (FormatException ex)
             {
                 // Log additional context for Base64 decoding failures
-                string base64Preview = base64String.Length > 50 ? base64String.Substring(0, 50) + "..." : base64String;
-                Debug.LogError($"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}. Base64 data length: {base64String.Length}, Preview: {base64Preview}");
+                var base64Preview = base64String.Length > 50 ? base64String.Substring(0, 50) + "..." : base64String;
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: Base64 decoding failed: {ex.Message}. Base64 data length: {base64String.Length}, Preview: {base64Preview}");
                 yield break;
             }
 
 #if UNITY_EDITOR
             // In Unity Editor, use temporary files to avoid URI length limits
-            string tempPath = Path.Combine(Application.temporaryCachePath, $"audio_{Guid.NewGuid().ToString("N")}.mp3");
+            var tempPath = Path.Combine(Application.temporaryCachePath, $"audio_{Guid.NewGuid().ToString("N")}.mp3");
 
             try
             {
@@ -82,7 +84,8 @@ namespace player2_sdk
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Cannot play audio for {identifier}: failed to write audio data to temp file: {ex.Message}");
+                Debug.LogError(
+                    $"Cannot play audio for {identifier}: failed to write audio data to temp file: {ex.Message}");
                 yield break;
             }
 
@@ -95,7 +98,7 @@ namespace player2_sdk
                 {
                     try
                     {
-                        AudioClip clip = DownloadHandlerAudioClip.GetContent(request);
+                        var clip = DownloadHandlerAudioClip.GetContent(request);
                         if (clip != null)
                         {
                             audioSource.clip = clip;
@@ -104,7 +107,8 @@ namespace player2_sdk
                         }
                         else
                         {
-                            Debug.LogError($"Cannot play audio for {identifier}: failed to create AudioClip from downloaded data");
+                            Debug.LogError(
+                                $"Cannot play audio for {identifier}: failed to create AudioClip from downloaded data");
                         }
                     }
                     catch (Exception ex)
@@ -114,7 +118,7 @@ namespace player2_sdk
                 }
                 else
                 {
-                    string errorDetails = request.error ?? "Unknown UnityWebRequest error";
+                    var errorDetails = request.error ?? "Unknown UnityWebRequest error";
                     Debug.LogError($"Cannot play audio for {identifier}: failed to load audio file - {errorDetails}");
                 }
             }
@@ -153,13 +157,13 @@ namespace player2_sdk
         }
 
         /// <summary>
-        /// Play audio using JavaScript interop (WebGL only)
+        ///     Play audio using JavaScript interop (WebGL only)
         /// </summary>
         [DllImport("__Internal")]
         private static extern void PlayWebGLAudio(string identifier, string base64Audio);
 
         /// <summary>
-        /// Helper method to play audio via JavaScript
+        ///     Helper method to play audio via JavaScript
         /// </summary>
         private void PlayAudioWithJavaScript(string identifier, string base64Audio, AudioSource audioSource)
         {
@@ -169,26 +173,27 @@ namespace player2_sdk
                 audioSource.Stop();
                 audioSource.clip = null;
             }
-            
+
             PlayWebGLAudio(identifier, base64Audio);
         }
 
         /// <summary>
-        /// Converts byte array to float array for AudioClip
+        ///     Converts byte array to float array for AudioClip
         /// </summary>
         private float[] ConvertBytesToFloatArray(byte[] bytes)
         {
-            float[] floats = new float[bytes.Length / 2]; // 16-bit samples
-            for (int i = 0; i < floats.Length; i++)
+            var floats = new float[bytes.Length / 2]; // 16-bit samples
+            for (var i = 0; i < floats.Length; i++)
             {
-                short sample = (short)((bytes[i * 2 + 1] << 8) | bytes[i * 2]);
+                var sample = (short)((bytes[i * 2 + 1] << 8) | bytes[i * 2]);
                 floats[i] = sample / 32768f; // Convert to -1.0 to 1.0 range
             }
+
             return floats;
         }
 
         /// <summary>
-        /// Fixes Base64 padding by adding missing = characters if needed
+        ///     Fixes Base64 padding by adding missing = characters if needed
         /// </summary>
         private string FixBase64Padding(string base64String)
         {
@@ -196,8 +201,8 @@ namespace player2_sdk
                 return base64String;
 
             // Base64 strings must be divisible by 4
-            int missingPadding = 4 - (base64String.Length % 4);
-            
+            var missingPadding = 4 - base64String.Length % 4;
+
             if (missingPadding != 4) // Only add padding if needed
             {
                 base64String = base64String + new string('=', missingPadding);
@@ -208,7 +213,7 @@ namespace player2_sdk
         }
 
         /// <summary>
-        /// Validates that a string contains only valid Base64 characters
+        ///     Validates that a string contains only valid Base64 characters
         /// </summary>
         private bool IsValidBase64String(string base64String)
         {
@@ -217,26 +222,19 @@ namespace player2_sdk
 
             // Base64 alphabet includes A-Z, a-z, 0-9, +, /, and = for padding
             // Remove padding characters for validation
-            string trimmed = base64String.TrimEnd('=');
+            var trimmed = base64String.TrimEnd('=');
 
             // Check each character
-            foreach (char c in trimmed)
-            {
+            foreach (var c in trimmed)
                 if (!(c >= 'A' && c <= 'Z') &&
                     !(c >= 'a' && c <= 'z') &&
                     !(c >= '0' && c <= '9') &&
                     c != '+' && c != '/')
-                {
                     return false;
-                }
-            }
 
             // Validate padding (if present)
-            int equalCount = 0;
-            for (int i = base64String.Length - 1; i >= 0 && base64String[i] == '='; i--)
-            {
-                equalCount++;
-            }
+            var equalCount = 0;
+            for (var i = base64String.Length - 1; i >= 0 && base64String[i] == '='; i--) equalCount++;
 
             // Base64 padding can only be 0, 1, or 2 characters
             if (equalCount > 2)

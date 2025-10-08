@@ -1,9 +1,3 @@
-using System;
-using System.Collections;
-using System.IO;
-using UnityEngine;
-using UnityEngine.Networking;
-
 #if !UNITY_WEBGL
 namespace player2_sdk
 {

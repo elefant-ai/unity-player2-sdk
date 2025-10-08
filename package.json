@@ -1,7 +1,7 @@
 {
   "name": "com.player2.sdk",
   "displayName": "Player2 SDK",
-  "version": "1.0.0",
+  "version": "0.6.0",
   "unity": "2023.2",
   "description": "Easily create seamless AI game experiences, for free!",
   "dependencies": {

@@ -69,7 +69,7 @@ namespace player2_sdk
 
     public class NpcManager : MonoBehaviour
     {
-        private const string BaseUrl = "http://coder-bryntet-dev-2.wombat-tawny.ts.net:8090/v1";
+        private const string BaseUrl = "https://api.player2.game/v1";
 
         [Header("Config")]
         [SerializeField]
@@ -224,7 +224,11 @@ namespace player2_sdk
 
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(clientId)) Debug.LogError("NpcManager requires a Game ID to be set.", this);
+            if (string.IsNullOrEmpty(clientId))
+            {
+                Debug.LogError("NpcManager requires a Game ID to be set.", this);
+                
+            }
         }
 
         public List<SerializableFunction> GetSerializableFunctions()
