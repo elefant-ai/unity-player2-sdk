@@ -1,6 +1,4 @@
-using System;
 using UnityEditor;
-using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace player2_sdk.Editor
@@ -33,8 +31,5 @@ namespace player2_sdk.Editor
                 Debug.LogError("GameObject 'MyObjectName' not found in scene");
             }
         }
-        
     }
-    
-    
 }

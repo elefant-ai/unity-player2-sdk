@@ -79,7 +79,9 @@ namespace player2_sdk
             webSocket?.DispatchMessageQueue();
         }
 #else
-    public void DispatchMessageQueue() { }
+        public void DispatchMessageQueue()
+        {
+        }
 #endif
     }
 
