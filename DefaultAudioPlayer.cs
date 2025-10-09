@@ -1,6 +1,11 @@
 #if !UNITY_WEBGL
 namespace player2_sdk
 {
+    using System;
+    using System.Collections;
+    using System.IO;
+    using UnityEngine;
+    using UnityEngine.Networking;
     /// <summary>
     ///     Default audio player implementation for non-WebGL platforms using temporary files
     /// </summary>

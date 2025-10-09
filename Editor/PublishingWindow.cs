@@ -108,7 +108,15 @@ namespace player2_sdk.Editor
                 // ReSharper disable once Unity.PerformanceCriticalCodeInvocation
                 BuildWebGL();
 
-                var baseUrl = "http://localhost:3000/profile/developer/01999b45-cf44-723a-bddf-736840b49478/upload";
+                var targetObject = GameObject.Find("NpcManager");
+                var npcManager = targetObject?.GetComponent<NpcManager>();
+                if (npcManager == null)
+                {
+                    Debug.LogError("NpcManager not found.");
+                    return;
+                }
+                
+                var baseUrl = $"https://player2.game/profile/developer/{npcManager.clientId}/upload";
                 var uriBuilder = new UriBuilder(baseUrl);
                 var encodedName = Uri.EscapeDataString(name ?? "");
                 var encodedDescription = Uri.EscapeDataString(gameDescription ?? "");
