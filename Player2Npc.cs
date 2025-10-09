@@ -74,9 +74,9 @@ namespace player2_sdk
         public string voiceId;
 
 
-        [Header("Events")] [SerializeField] private TMP_InputField inputField;
+        [Header("Events")] [SerializeField] public TMP_InputField inputField;
 
-        [SerializeField] private TextMeshProUGUI outputMessage;
+        [SerializeField] public TextMeshProUGUI outputMessage;
 
         [Header("Debugging")]
         [Tooltip(
@@ -95,7 +95,7 @@ namespace player2_sdk
 
         private string _npcID;
 
-        private void Awake()
+        private async void Awake()
         {
             Debug.Log("Starting Player2Npc with NPC: " + fullName);
             if (npcManager == null)
@@ -134,7 +134,7 @@ namespace player2_sdk
             else
             {
                 if (!string.IsNullOrEmpty(npcManager.ApiKey))
-                    StartCoroutine(SpawnNpcAsync());
+                    await SpawnNpcAsync();
                 else
                     npcManager.spawnNpcs.AddListener(async () => { await SpawnNpcAsync(); });
             }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -83,6 +84,7 @@ namespace player2_sdk
         private string _lastEventId;
         private NpcManager _npcManager;
         private int _reconnectAttempts;
+        
 
         private Dictionary<string, UnityEvent<NpcApiChatResponse>> _responseEvents = new();
 
@@ -96,6 +98,8 @@ namespace player2_sdk
 
         public bool IsListening { get; private set; }
 
+        private Coroutine _listener;
+        
         private void Awake()
         {
             // Get reference to NpcManager on the same GameObject
@@ -250,7 +254,7 @@ namespace player2_sdk
                 $"Starting NPC response listener... (Registered NPCs: {string.Join(", ", _responseEvents.Keys)}) Current Last-Event-Id: {_lastEventId ?? "none"}");
 
             // Fire and forget async operation
-            _ = ListenForResponsesAsync();
+            _listener = StartCoroutine(ListenForResponsesAsync());
         }
 
         public void StopListening()
