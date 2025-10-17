@@ -4438,7 +4438,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1535598072264734473, guid: 1bd888b5e113930368f7c9e0702ff141, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 79.562164
+      value: 133.5
       objectReference: {fileID: 0}
     - target: {fileID: 1535598072264734473, guid: 1bd888b5e113930368f7c9e0702ff141, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -4464,6 +4464,10 @@ PrefabInstance:
       propertyPath: npcManager
       value: 
       objectReference: {fileID: 321986438}
+    - target: {fileID: 8870975669424741696, guid: 1bd888b5e113930368f7c9e0702ff141, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
