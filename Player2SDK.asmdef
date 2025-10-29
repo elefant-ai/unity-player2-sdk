@@ -2,7 +2,8 @@
     "name": "Player2SDK",
     "rootNamespace": "player2_sdk",
     "references": [
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "endel.nativewebsocket"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
