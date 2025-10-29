@@ -1,17 +1,15 @@
 using Newtonsoft.Json.Linq;
 using TMPro;
-using Unity.VectorGraphics;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-
 namespace player2_sdk
 {
     public class JouleCounting : MonoBehaviour
     {
         [SerializeField] private NpcManager npcManager;
         [SerializeField] private TextMeshProUGUI textMesh;
-        [SerializeField] private SVGImage image;
+        [SerializeField] private RawImage image;
         [SerializeField] private GameObject counter;
         [SerializeField] private GameObject upgradePanel;
         [SerializeField] private Button upgradeButton;

@@ -375,7 +375,7 @@ GameObject:
   m_Component:
   - component: {fileID: 745162520084765403}
   - component: {fileID: 668736564005807151}
-  - component: {fileID: 1282572615307975839}
+  - component: {fileID: 1312063589840205768}
   m_Layer: 0
   m_Name: Joules Image
   m_TagString: Untagged
@@ -410,7 +410,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2145725851347935012}
   m_CullTransparentMesh: 1
---- !u!114 &1282572615307975839
+--- !u!114 &1312063589840205768
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -419,19 +419,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 2145725851347935012}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ef8b96895a0ec4ba685178a052544251, type: 3}
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.VectorGraphics::Unity.VectorGraphics.SVGImage
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 1, b: 0.029838085, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 3286163911610860551, guid: 52a01002b2b8d5cc39c1944a2661a079, type: 3}
-  m_PreserveAspect: 0
+  m_Texture: {fileID: 2800000, guid: 0cc8674b069a71c4e8a5b6d6e26416cd, type: 3}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
 --- !u!1 &2486280776845131250
 GameObject:
   m_ObjectHideFlags: 0
@@ -843,7 +848,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::player2_sdk.JouleCounting
   npcManager: {fileID: 0}
   textMesh: {fileID: 4752261593584318791}
-  image: {fileID: 1282572615307975839}
+  image: {fileID: 1312063589840205768}
   counter: {fileID: 8320607884211275772}
   upgradePanel: {fileID: 6851737140851670507}
   upgradeButton: {fileID: 9037814186996564445}
