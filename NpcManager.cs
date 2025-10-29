@@ -326,7 +326,7 @@ namespace player2_sdk
             yield return new WaitForSecondsRealtime(0.1f);
 
             // Check if AuthenticationUI already exists
-            var existingAuth = FindObjectOfType<AuthenticationUI>();
+            var existingAuth = FindFirstObjectByType<AuthenticationUI>();
             if (existingAuth != null)
             {
                 Debug.Log("NpcManager.AutoStartAuthentication: AuthenticationUI already exists, not auto-creating");
